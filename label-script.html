@@ -1,0 +1,151 @@
+<script>
+let currentLabels = [];
+
+function showStatus(message, type = 'loading') {
+    const statusDiv = document.getElementById('status');
+    statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+    
+    if (type !== 'loading') {
+        setTimeout(() => {
+            statusDiv.innerHTML = '';
+        }, 5000);
+    }
+}
+
+function updateStats(labelCount, pageCount) {
+    document.getElementById('totalLabels').textContent = labelCount;
+    document.getElementById('totalPages').textContent = pageCount;
+    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+    document.getElementById('stats').style.display = 'flex';
+}
+
+function loadSheetsList() {
+    google.script.run
+        .withSuccessHandler(function(sheets) {
+            const selector = document.getElementById('sheetSelector');
+            selector.innerHTML = '<option value="">Select Sheet...</option>';
+            
+            sheets.forEach(sheetName => {
+                const option = document.createElement('option');
+                option.value = sheetName;
+                option.textContent = sheetName;
+                selector.appendChild(option);
+            });
+            
+            // Auto-select "Label" sheet if exists
+            if (sheets.includes('Label')) {
+                selector.value = 'Label';
+                updateSheetSelection();
+            }
+        })
+        .withFailureHandler(function(error) {
+            showStatus('❌ Error loading sheets: ' + error.message, 'error');
+        })
+        .getSheetsList();
+}
+
+function updateSheetSelection() {
+    const selectedSheet = document.getElementById('sheetSelector').value;
+    const loadBtn = document.getElementById('loadBtn');
+    
+    loadBtn.disabled = !selectedSheet;
+    
+    if (selectedSheet) {
+        loadBtn.textContent = `🔄 Load from "${selectedSheet}"`;
+    } else {
+        loadBtn.textContent = '🔄 Load Labels';
+    }
+}
+
+function refreshSheets() {
+    showStatus('🔄 Refreshing sheet list...', 'loading');
+    loadSheetsList();
+    setTimeout(() => showStatus('✅ Sheet list updated!', 'success'), 1000);
+}
+
+function loadLabels() {
+    const selectedSheet = document.getElementById('sheetSelector').value;
+    
+    if (!selectedSheet) {
+        showStatus('❌ Please select a sheet first', 'error');
+        return;
+    }
+    
+    showStatus('🔄 Loading labels from ' + selectedSheet + '...', 'loading');
+    
+    google.script.run
+        .withSuccessHandler(function(result) {
+            if (result.success) {
+                currentLabels = result.data;
+                renderLabels(currentLabels);
+                showStatus(`✅ Loaded ${result.count} labels successfully!`, 'success');
+            } else {
+                showStatus('❌ Error: ' + result.error, 'error');
+            }
+        })
+        .withFailureHandler(function(error) {
+            showStatus('❌ Failed to load: ' + error.message, 'error');
+        })
+        .getDataFromSheet(selectedSheet);
+}
+
+function renderLabels(labels) {
+    if (!labels || labels.length === 0) {
+        document.getElementById('content').innerHTML = `
+            <div class="welcome">
+                <h3>📭 No Labels Found</h3>
+                <p>The selected sheet appears to be empty or has no valid label data</p>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '<div class="labels-grid">';
+    
+    labels.forEach((label, index) => {
+        html += `
+            <div class="label-box">
+                <div class="label-code">#${label.code}</div>
+                <div class="label-customer">${label.customer}</div>
+                <div class="label-address">
+                    ${label.address.map(addr => `<div>${addr}</div>`).join('')}
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    document.getElementById('content').innerHTML = html;
+    
+    // Update stats
+    const estimatedPages = Math.ceil(labels.length / 18);
+    updateStats(labels.length, estimatedPages);
+    
+    // Auto add page breaks
+    setTimeout(() => addPageBreaks(18), 500);
+}
+
+function addPageBreaks(labelsPerPage = 18) {
+    const labelBoxes = document.querySelectorAll('.label-box');
+    
+    // Remove existing page breaks
+    labelBoxes.forEach(box => box.classList.remove('page-break'));
+    
+    // Add new page breaks
+    for (let i = labelsPerPage; i < labelBoxes.length; i += labelsPerPage) {
+        if (labelBoxes[i]) {
+            labelBoxes[i].classList.add('page-break');
+        }
+    }
+    
+    const totalPages = Math.ceil(labelBoxes.length / labelsPerPage);
+    showStatus(`📄 Page breaks set: ${labelsPerPage} labels per page (${totalPages} pages)`, 'success');
+    updateStats(labelBoxes.length, totalPages);
+}
+
+// Initialize when page loads
+window.onload = function() {
+    showStatus('🔄 Initializing...', 'loading');
+    loadSheetsList();
+};
+</script>

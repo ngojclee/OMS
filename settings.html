@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cài đặt</title>
+    <?!= include('shared-styles'); ?>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="?" class="navbar-brand">🏢 Hệ thống quản lý</a>
+        <div class="navbar-nav">
+            <a href="?" class="nav-link">🏠 Trang chủ</a>
+            <a href="?page=extract-orders" class="nav-link">📦 Đơn hàng</a>
+            <a href="?page=shipping-labels" class="nav-link">🏷️ Tem vận chuyển</a>
+            <a href="?page=inventory" class="nav-link">📊 Kho</a>
+            <a href="?page=reports" class="nav-link">📈 Báo cáo</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                <h1 class="card-title">⚙️ Cài đặt hệ thống</h1>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">🏢 Tên công ty</label>
+                <input type="text" class="form-input" value="Công ty ABC" id="companyName">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">📧 Email liên hệ</label>
+                <input type="email" class="form-input" value="admin@company.com" id="contactEmail">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">🔔 Thông báo</label>
+                <select class="form-input" id="notifications">
+                    <option value="all">Tất cả thông báo</option>
+                    <option value="important">Chỉ thông báo quan trọng</option>
+                    <option value="none">Tắt thông báo</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">🎨 Giao diện</label>
+                <select class="form-input" id="theme">
+                    <option value="default">Mặc định</option>
+                    <option value="dark">Tối</option>
+                    <option value="light">Sáng</option>
+                </select>
+            </div>
+            
+            <div style="margin-top: 30px;">
+                <button class="btn" onclick="saveSettings()">💾 Lưu cài đặt</button>
+                <button class="btn btn-secondary" onclick="resetSettings()">🔄 Đặt lại</button>
+                <a href="?" class="btn btn-secondary">← Quay lại trang chủ</a>
+            </div>
+            
+            <div id="settingsStatus"></div>
+        </div>
+    </div>
+
+    <script>
+        function saveSettings() {
+            const settings = {
+                companyName: document.getElementById('companyName').value,
+                contactEmail: document.getElementById('contactEmail').value,
+                notifications: document.getElementById('notifications').value,
+                theme: document.getElementById('theme').value
+            };
+            
+            // Simulate saving
+            document.getElementById('settingsStatus').innerHTML = 
+                '<div class="message success">✅ Đã lưu cài đặt thành công!</div>';
+            
+            setTimeout(() => {
+                document.getElementById('settingsStatus').innerHTML = '';
+            }, 3000);
+        }
+        
+        function resetSettings() {
+            document.getElementById('companyName').value = 'Công ty ABC';
+            document.getElementById('contactEmail').value = 'admin@company.com';
+            document.getElementById('notifications').value = 'all';
+            document.getElementById('theme').value = 'default';
+            
+            document.getElementById('settingsStatus').innerHTML = 
+                '<div class="message success">🔄 Đã đặt lại cài đặt!</div>';
+            
+            setTimeout(() => {
+                document.getElementById('settingsStatus').innerHTML = '';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

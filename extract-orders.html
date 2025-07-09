@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trích xuất đơn hàng</title>
+    <?!= include('shared-styles'); ?>
+    <style>
+        .date-inputs {
+            display: flex;
+            gap: 20px;
+            align-items: end;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .date-group {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px 12px;
+            text-align: left;
+            font-size: 0.9em;
+        }
+        
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        
+        tr:hover {
+            background: #e3f2fd;
+        }
+        
+        /* Enhanced checkbox styling */
+        input[type="checkbox"] {
+            transform: scale(1.4);
+            margin: 6px;
+            cursor: pointer;
+            accent-color: #667eea;
+        }
+        
+        @media (max-width: 600px) {
+            input[type="checkbox"] {
+                transform: scale(1.8);
+            }
+            
+            .date-inputs {
+                flex-direction: column;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            th, td {
+                padding: 6px 8px;
+                font-size: 0.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="?" class="navbar-brand">🏢 Hệ thống quản lý</a>
+        <div class="navbar-nav">
+            <a href="?" class="nav-link">🏠 Trang chủ</a>
+            <a href="?page=extract-orders" class="nav-link">📦 Đơn hàng</a>
+            <a href="?page=shipping-labels" class="nav-link">🏷️ Tem vận chuyển</a>
+            <a href="?page=inventory" class="nav-link">📊 Kho</a>
+            <a href="?page=reports" class="nav-link">📈 Báo cáo</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                <h1 class="card-title">📦 Trích xuất đơn hàng theo ngày</h1>
+            </div>
+            
+            <div class="date-inputs">
+                <div class="date-group">
+                    <label class="form-label">📅 Từ ngày:</label>
+                    <input type="date" id="startDate" class="form-input">
+                </div>
+                
+                <div class="date-group">
+                    <label class="form-label">📅 Đến ngày:</label>
+                    <input type="date" id="endDate" class="form-input">
+                </div>
+            </div>
+            
+            <div class="action-buttons">
+                <button onclick="runExtract()" class="btn">🔍 Truy xuất đơn hàng</button>
+                <button onclick="runUpdate()" class="btn btn-secondary">💾 Cập nhật đóng gói</button>
+                <button onclick="selectAll()" class="btn btn-secondary">☑️ Chọn tất cả</button>
+                <button onclick="deselectAll()" class="btn btn-secondary">☐ Bỏ chọn tất cả</button>
+            </div>
+            
+            <div id="message"></div>
+            
+            <div class="table-container">
+                <div id="output"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Set default dates to today
+        const today = new Date().toISOString().split("T")[0];
+        document.getElementById("startDate").value = today;
+        document.getElementById("endDate").value = today;
+
+        function showMessage(text, type = 'loading') {
+            const messageDiv = document.getElementById("message");
+            messageDiv.innerHTML = `<div class="message ${type}">${text}</div>`;
+        }
+
+        function runExtract() {
+            const start = document.getElementById("startDate").value;
+            const end = document.getElementById("endDate").value;
+
+            if (!start || !end) {
+                showMessage("❌ Vui lòng chọn ngày bắt đầu và kết thúc", 'error');
+                return;
+            }
+
+            showMessage("⏳ Đang truy xuất dữ liệu...", 'loading');
+            document.getElementById("output").innerHTML = "";
+
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    showMessage(result.message, result.success ? 'success' : 'error');
+                    document.getElementById("output").innerHTML = "";
+                    
+                    if (result.success && result.rows.length) {
+                        renderTable(result);
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    showMessage("❌ Lỗi: " + error.message, 'error');
+                })
+                .extractByDateRange(start, end);
+        }
+
+        function renderTable(result) {
+            const table = document.createElement("table");
+
+            // Create header row
+            const headerRow = document.createElement("tr");
+            result.header.forEach((col, i) => {
+                const th = document.createElement("th");
+                th.innerText = col;
+                headerRow.appendChild(th);
+                
+                // Add checkbox column after "Short Invoice" (index 3)
+                if (i === 3) {
+                    const thPack = document.createElement("th");
+                    thPack.innerText = "Đã đóng gói";
+                    thPack.style.textAlign = "center";
+                    headerRow.appendChild(thPack);
+                }
+            });
+            table.appendChild(headerRow);
+
+            // Create data rows
+            result.rows.forEach((row, idx) => {
+                const tr = document.createElement("tr");
+                const packedState = row[8];  // Last element is packed status
+
+                // Add first 8 columns of data
+                for (let j = 0; j < 8; j++) {
+                    const td = document.createElement("td");
+                    td.innerText = row[j];
+                    tr.appendChild(td);
+
+                    // Add checkbox after column 3 (Short Invoice)
+                    if (j === 3) {
+                        const tdChk = document.createElement("td");
+                        tdChk.style.textAlign = "center";
+                        
+                        const chk = document.createElement("input");
+                        chk.type = "checkbox";
+                        chk.dataset.row = idx;
+                        chk.checked = packedState;
+                        chk.addEventListener('change', updateRowStyle);
+                        
+                        tdChk.appendChild(chk);
+                        tr.appendChild(tdChk);
+                    }
+                }
+
+                // Apply initial row styling based on packed status
+                if (packedState) {
+                    tr.style.backgroundColor = '#e6f7e6';
+                }
+
+                table.appendChild(tr);
+            });
+
+            document.getElementById("output").appendChild(table);
+        }
+
+        function updateRowStyle(event) {
+            const checkbox = event.target;
+            const row = checkbox.closest('tr');
+            
+            if (checkbox.checked) {
+                row.style.backgroundColor = '#e6f7e6';
+            } else {
+                row.style.backgroundColor = '';
+            }
+        }
+
+        function runUpdate() {
+            const start = document.getElementById("startDate").value;
+            const end = document.getElementById("endDate").value;
+            
+            if (!start || !end) {
+                showMessage("❌ Vui lòng chọn ngày trước khi cập nhật", 'error');
+                return;
+            }
+
+            // Get all checked checkboxes
+            const picked = Array.from(document.querySelectorAll("input[type=checkbox][data-row]"))
+                .filter(c => c.checked)
+                .map(c => parseInt(c.dataset.row, 10));
+
+            showMessage("⏳ Đang cập nhật trạng thái đóng gói...", 'loading');
+            
+            google.script.run
+                .withSuccessHandler(function(res) {
+                    showMessage(res.message, res.success ? 'success' : 'error');
+                    // Auto refresh data after update
+                    if (res.success) {
+                        setTimeout(() => runExtract(), 1000);
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    showMessage("❌ Lỗi cập nhật: " + error.message, 'error');
+                })
+                .updatePackedStatus(start, end, picked);
+        }
+
+        function selectAll() {
+            const checkboxes = document.querySelectorAll("input[type=checkbox][data-row]");
+            checkboxes.forEach(cb => {
+                cb.checked = true;
+                updateRowStyle({target: cb});
+            });
+            showMessage("✅ Đã chọn tất cả đơn hàng", 'success');
+        }
+
+        function deselectAll() {
+            const checkboxes = document.querySelectorAll("input[type=checkbox][data-row]");
+            checkboxes.forEach(cb => {
+                cb.checked = false;
+                updateRowStyle({target: cb});
+            });
+            showMessage("✅ Đã bỏ chọn tất cả đơn hàng", 'success');
+        }
+
+        // Auto-load today's data when page loads
+        window.onload = function() {
+            showMessage("🚀 Sẵn sàng truy xuất đơn hàng. Click 'Truy xuất' để bắt đầu.", 'success');
+        };
+    </script>
+</body>
+</html>

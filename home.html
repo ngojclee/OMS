@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ thống quản lý phòng ban</title>
+    <?!= include('shared-styles'); ?>
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(102, 126, 234, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            color: white;
+            font-size: 18px;
+        }
+        
+        .menu-card {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .menu-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .menu-card:hover::before {
+            left: 100%;
+        }
+        
+        .menu-card:active {
+            transform: translateY(-3px) scale(0.98);
+        }
+        
+        .quick-info {
+            text-align: center;
+            margin-top: 30px;
+            color: #666;
+            background: rgba(255,255,255,0.9);
+            padding: 15px;
+            border-radius: 8px;
+        }
+        
+        .current-url {
+            font-family: monospace;
+            background: #f8f9fa;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            word-break: break-all;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div>
+            <div>🔄 Đang tải hệ thống...</div>
+            <div style="font-size: 14px; margin-top: 10px;">Vui lòng chờ trong giây lát</div>
+        </div>
+    </div>
+
+    <div class="home-container">
+        <div class="home-header">
+            <h1>🏢 Hệ thống quản lý phòng ban</h1>
+            <p class="subtitle">Chọn chức năng bạn muốn sử dụng</p>
+        </div>
+        
+        <div class="menu-grid" id="menuGrid">
+            <!-- Menu items will be populated by JavaScript -->
+        </div>
+        
+        <div class="quick-info">
+            <div><strong>📍 URL hiện tại:</strong></div>
+            <div class="current-url" id="currentUrl">Đang tải...</div>
+            <div style="font-size: 0.9em; margin-top: 10px;">
+                <strong>🚀 Navigation:</strong> Direct URL linking cho tốc độ tối ưu
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 40px; color: #666;">
+            <p>© 2025 Hệ thống quản lý phòng ban. Powered by Google Apps Script.</p>
+        </div>
+    </div>
+
+    <script>
+        // Get current base URL - Fixed để lấy đúng deployment URL
+        function getCurrentBaseUrl() {
+            // Thử lấy từ parent window trước (nếu trong iframe)
+            try {
+                if (window.parent && window.parent !== window && window.parent.location.href) {
+                    const parentUrl = window.parent.location.href;
+                    if (parentUrl.includes('script.google.com/macros')) {
+                        return parentUrl.split('?')[0];
+                    }
+                }
+            } catch (e) {
+                // CORS restriction, fallback to current window
+            }
+            
+            // Lấy từ current window
+            const currentUrl = window.location.href.split('?')[0];
+            
+            // Nếu là internal URL, construct deployment URL
+            if (currentUrl.includes('googleusercontent.com') || currentUrl.includes('/dev')) {
+                // Return a placeholder or prompt user
+                return 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec';
+            }
+            
+            return currentUrl;
+        }
+        
+        // Detect deployment URL intelligently
+        function getDeploymentUrl() {
+            // Method 1: Try từ URL parameters nếu có
+            const urlParams = new URLSearchParams(window.location.search);
+            const deployUrl = urlParams.get('deploy_url');
+            if (deployUrl) {
+                return deployUrl;
+            }
+            
+            // Method 2: Check if we're in production deployment
+            const currentUrl = window.location.href;
+            if (currentUrl.includes('/exec') || currentUrl.includes('/dev')) {
+                return currentUrl.split('?')[0];
+            }
+            
+            // Method 3: Try to get from document referrer
+            if (document.referrer && document.referrer.includes('script.google.com/macros')) {
+                return document.referrer.split('?')[0];
+            }
+            
+            // Method 4: Fallback - ask user to configure
+            return null;
+        }
+        
+        // Menu configuration
+        const menuItems = [
+            {
+                page: 'extract-orders',
+                icon: '📦',
+                title: 'Trích xuất đơn hàng',
+                description: 'Tìm kiếm và quản lý đơn hàng theo khoảng thời gian, cập nhật trạng thái đóng gói',
+                class: 'extract'
+            },
+            {
+                page: 'shipping-labels',
+                icon: '🏷️',
+                title: 'In tem vận chuyển',
+                description: 'Tạo và in tem shipping labels từ dữ liệu Google Sheets, layout tối ưu cho in A4',
+                class: 'labels'
+            },
+            {
+                page: 'employee-tasks',
+                icon: '👥',
+                title: 'Giao việc nhân viên',
+                description: 'Quản lý và theo dõi công việc được giao cho từng nhân viên, cập nhật trạng thái hoàn thành',
+                class: 'inventory'
+            },
+            {
+                page: 'inventory',
+                icon: '📊',
+                title: 'Quản lý kho',
+                description: 'Theo dõi tồn kho, cảnh báo hết hàng, quản lý nhập xuất',
+                class: 'reports'
+            },
+            {
+                page: 'reports',
+                icon: '📈',
+                title: 'Báo cáo',
+                description: 'Tạo các báo cáo doanh thu, thống kê bán hàng, phân tích dữ liệu',
+                class: 'settings'
+            },
+            {
+                page: 'settings',
+                icon: '⚙️',
+                title: 'Cài đặt',
+                description: 'Cấu hình hệ thống, quản lý người dùng, thiết lập thông báo',
+                class: 'settings'
+            }
+        ];
+        
+        // Generate menu HTML with direct URLs
+        function generateMenu() {
+            const baseUrl = getDeploymentUrl();
+            const menuGrid = document.getElementById('menuGrid');
+            
+            if (!baseUrl) {
+                // Show setup instructions if URL not detected
+                menuGrid.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 40px; background: rgba(255,255,255,0.9); border-radius: 8px;">
+                        <h3>🔧 Cần cấu hình URL Deployment</h3>
+                        <p>Vui lòng copy <strong>Deployment URL</strong> của bạn và paste vào ô bên dưới:</p>
+                        <input type="url" id="deployUrlInput" placeholder="https://script.google.com/macros/s/.../exec" 
+                               style="width: 100%; max-width: 600px; padding: 10px; margin: 10px 0; border: 2px solid #ddd; border-radius: 4px;">
+                        <br>
+                        <button onclick="setDeploymentUrl()" style="padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                            💾 Lưu và tạo menu
+                        </button>
+                        <p style="font-size: 0.9em; color: #666; margin-top: 15px;">
+                            <strong>Cách lấy Deployment URL:</strong><br>
+                            1. Vào Apps Script Editor<br>
+                            2. Deploy → Manage deployments<br>
+                            3. Copy URL từ "Web app"
+                        </p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            menuItems.forEach(item => {
+                const directUrl = `${baseUrl}?page=${item.page}`;
+                
+                html += `
+                    <a href="${directUrl}" class="menu-card ${item.class}" onclick="showLoading('${item.title}')">
+                        <span class="card-icon">${item.icon}</span>
+                        <div class="card-title-menu">${item.title}</div>
+                        <div class="card-desc">${item.description}</div>
+                    </a>
+                `;
+            });
+            
+            menuGrid.innerHTML = html;
+        }
+        
+        // Set deployment URL manually
+        function setDeploymentUrl() {
+            const url = document.getElementById('deployUrlInput').value.trim();
+            if (!url) {
+                alert('Vui lòng nhập URL deployment!');
+                return;
+            }
+            
+            if (!url.includes('script.google.com/macros')) {
+                alert('URL không hợp lệ! Cần là Google Apps Script URL.');
+                return;
+            }
+            
+            // Save to localStorage
+            localStorage.setItem('deploymentUrl', url);
+            
+            // Regenerate menu
+            generateMenu();
+            updateCurrentUrl();
+            
+            // Show success
+            showTemporaryMessage('✅ Đã lưu URL deployment! Menu đã được tạo.');
+        }
+        
+        // Get stored deployment URL
+        function getStoredDeploymentUrl() {
+            return localStorage.getItem('deploymentUrl');
+        }
+        
+        // Enhanced deployment URL detection
+        function getDeploymentUrl() {
+            // Try stored URL first
+            const stored = getStoredDeploymentUrl();
+            if (stored) return stored;
+            
+            // Try current URL detection
+            const currentUrl = window.location.href;
+            
+            // If we're in actual deployment
+            if (currentUrl.includes('script.google.com/macros') && 
+                (currentUrl.includes('/exec') || currentUrl.includes('/dev'))) {
+                const baseUrl = currentUrl.split('?')[0];
+                // Auto-save for future use
+                localStorage.setItem('deploymentUrl', baseUrl);
+                return baseUrl;
+            }
+            
+            return null;
+        }
+        
+        // Show temporary message
+        function showTemporaryMessage(message) {
+            const existing = document.getElementById('tempMessage');
+            if (existing) existing.remove();
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.id = 'tempMessage';
+            messageDiv.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #4CAF50;
+                color: white;
+                padding: 15px 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                z-index: 10000;
+                font-weight: 500;
+            `;
+            messageDiv.textContent = message;
+            document.body.appendChild(messageDiv);
+            
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 3000);
+        }
+        
+        // Show loading overlay when navigating
+        function showLoading(pageName) {
+            const overlay = document.getElementById('loadingOverlay');
+            overlay.innerHTML = `
+                <div>
+                    <div>🚀 Đang chuyển đến ${pageName}...</div>
+                    <div style="font-size: 14px; margin-top: 10px;">Vui lòng chờ trong giây lát</div>
+                </div>
+            `;
+            overlay.style.display = 'flex';
+        }
+        
+        // Update current URL display
+        function updateCurrentUrl() {
+            const deployUrl = getDeploymentUrl();
+            const currentUrlDiv = document.getElementById('currentUrl');
+            
+            if (deployUrl) {
+                currentUrlDiv.textContent = deployUrl;
+                currentUrlDiv.style.color = '#28a745';
+            } else {
+                currentUrlDiv.innerHTML = `
+                    <span style="color: #dc3545;">Chưa cấu hình URL deployment</span><br>
+                    <span style="font-size: 0.8em;">Current: ${window.location.href}</span>
+                `;
+            }
+        }
+        
+        // Add keyboard shortcuts
+        function setupKeyboardShortcuts() {
+            document.addEventListener('keydown', function(e) {
+                if (e.altKey && !e.ctrlKey && !e.shiftKey) {
+                    const num = parseInt(e.key);
+                    if (num >= 1 && num <= menuItems.length) {
+                        e.preventDefault();
+                        const item = menuItems[num - 1];
+                        const baseUrl = getDeploymentUrl();
+                        if (baseUrl) {
+                            const directUrl = `${baseUrl}?page=${item.page}`;
+                            showLoading(item.title);
+                            window.location.href = directUrl;
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Add tooltips for keyboard shortcuts
+        function addKeyboardTooltips() {
+            const menuCards = document.querySelectorAll('.menu-card');
+            menuCards.forEach((card, index) => {
+                card.title = `Click hoặc nhấn Alt+${index + 1} để mở`;
+            });
+        }
+        
+        // Performance monitoring
+        function logNavigationPerformance() {
+            const deployUrl = getDeploymentUrl();
+            console.log('🚀 Performance Info:');
+            console.log('Deployment URL:', deployUrl || 'Not configured');
+            console.log('Current URL:', window.location.href);
+            console.log('Direct Navigation:', deployUrl ? 'Enabled' : 'Needs setup');
+            console.log('Menu Items:', menuItems.length);
+        }
+        
+        // Initialize page
+        function initializePage() {
+            // Hide loading overlay
+            setTimeout(() => {
+                document.getElementById('loadingOverlay').style.display = 'none';
+            }, 500);
+            
+            // Generate menu with direct URLs
+            generateMenu();
+            
+            // Update current URL display
+            updateCurrentUrl();
+            
+            // Setup keyboard shortcuts
+            setupKeyboardShortcuts();
+            
+            // Add tooltips
+            setTimeout(addKeyboardTooltips, 100);
+            
+            // Performance logging
+            logNavigationPerformance();
+            
+            console.log('✅ Home page initialized');
+            
+            // Show helpful tip if first time
+            if (!getStoredDeploymentUrl() && !getDeploymentUrl()) {
+                setTimeout(() => {
+                    showTemporaryMessage('💡 Tip: Cần cấu hình Deployment URL để navigation hoạt động tối ưu');
+                }, 2000);
+            }
+        }
+        
+        // Run when page loads
+        window.onload = initializePage;
+        
+        // Handle back button and URL changes
+        window.addEventListener('popstate', function(e) {
+            updateCurrentUrl();
+        });
+        
+        // Add some visual feedback for direct navigation
+        document.addEventListener('DOMContentLoaded', function() {
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes pulseGlow {
+                    0% { box-shadow: 0 4px 20px rgba(102,126,234,0.3); }
+                    50% { box-shadow: 0 8px 30px rgba(102,126,234,0.5); }
+                    100% { box-shadow: 0 4px 20px rgba(102,126,234,0.3); }
+                }
+                
+                .menu-card:hover {
+                    animation: pulseGlow 2s infinite;
+                }
+            `;
+            document.head.appendChild(style);
+        });
+    </script>
+</body>
+</html>

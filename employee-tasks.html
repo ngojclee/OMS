@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giao việc nhân viên</title>
+    <?!= include('shared-styles'); ?>
+    <style>
+        .employee-selector {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+        }
+        
+        .selector-group {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .selector-group select {
+            background: white;
+            color: #333;
+            min-width: 200px;
+        }
+        
+        .task-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .task-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-left: 5px solid #667eea;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .task-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .task-card.urgent {
+            border-left-color: #ff4757;
+        }
+        
+        .task-card.completed {
+            border-left-color: #2ed573;
+            opacity: 0.7;
+        }
+        
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+        
+        .task-date {
+            background: #f8f9fa;
+            color: #495057;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+        
+        .task-status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+        
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-urgent {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status-completed {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .task-shop {
+            font-size: 0.9em;
+            color: #6c757d;
+            margin-bottom: 10px;
+        }
+        
+        .task-item {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .task-description {
+            color: #666;
+            font-size: 0.95em;
+            line-height: 1.4;
+            margin-bottom: 15px;
+        }
+        
+        .task-deadline {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .deadline-label {
+            font-size: 0.9em;
+            color: #495057;
+        }
+        
+        .deadline-date {
+            background: #e3f2fd;
+            color: #1565c0;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+        
+        .deadline-urgent {
+            background: #ffebee;
+            color: #c62828;
+        }
+        
+        .task-code {
+            background: #667eea;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 15px;
+        }
+        
+        .product-image {
+            width: 100%;
+            max-width: 120px;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 2px solid #e9ecef;
+            margin-top: 10px;
+        }
+        
+        .no-image {
+            width: 120px;
+            height: 120px;
+            background: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6c757d;
+            font-size: 0.8em;
+            text-align: center;
+            margin-top: 10px;
+        }
+        
+        .task-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 0.8em;
+            border-radius: 4px;
+        }
+        
+        .stats-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+            min-width: 150px;
+            flex: 1;
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+        
+        @media (max-width: 768px) {
+            .task-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .selector-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .stats-row {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="?" class="navbar-brand">🏢 Hệ thống quản lý</a>
+        <div class="navbar-nav">
+            <a href="?" class="nav-link">🏠 Trang chủ</a>
+            <a href="?page=extract-orders" class="nav-link">📦 Đơn hàng</a>
+            <a href="?page=shipping-labels" class="nav-link">🏷️ Tem vận chuyển</a>
+            <a href="?page=employee-tasks" class="nav-link">👥 Giao việc</a>
+            <a href="?page=inventory" class="nav-link">📊 Kho</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                <h1 class="card-title">👥 Giao việc nhân viên</h1>
+            </div>
+            
+            <div class="employee-selector">
+                <div class="selector-group">
+                    <div>
+                        <label class="form-label" style="color: white; margin-bottom: 8px;">👤 Chọn nhân viên:</label>
+                        <select id="employeeSelector" onchange="loadEmployeeTasks()">
+                            <option value="">Chọn nhân viên...</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="form-label" style="color: white; margin-bottom: 8px;">📅 Lọc theo ngày:</label>
+                        <select id="dateFilter" onchange="filterTasks()">
+                            <option value="all">Tất cả</option>
+                            <option value="today">Hôm nay</option>
+                            <option value="tomorrow">Ngày mai</option>
+                            <option value="week">Tuần này</option>
+                            <option value="overdue">Quá hạn</option>
+                        </select>
+                    </div>
+                    
+                    <button onclick="refreshData()" class="btn btn-secondary">🔄 Làm mới</button>
+                </div>
+            </div>
+            
+            <div id="status"></div>
+            
+            <div class="stats-row" id="statsRow" style="display: none;">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalTasks">0</div>
+                    <div class="stat-label">Tổng task</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="pendingTasks">0</div>
+                    <div class="stat-label">Đang làm</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="urgentTasks">0</div>
+                    <div class="stat-label">Khẩn cấp</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="completedTasks">0</div>
+                    <div class="stat-label">Hoàn thành</div>
+                </div>
+            </div>
+            
+            <div id="content">
+                <div class="empty-state">
+                    <h3>📋 Chọn nhân viên để xem task</h3>
+                    <p>Chọn nhân viên từ dropdown bên trên để hiển thị danh sách công việc được giao</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allTasks = [];
+        let productImages = {};
+        let currentFilter = 'all';
+
+        function showStatus(message, type = 'loading') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="message ${type}">${message}</div>`;
+            
+            if (type !== 'loading') {
+                setTimeout(() => {
+                    statusDiv.innerHTML = '';
+                }, 5000);
+            }
+        }
+
+        function loadEmployeeList() {
+            showStatus('🔄 Đang tải danh sách nhân viên...', 'loading');
+            
+            google.script.run
+                .withSuccessHandler(function(employees) {
+                    const selector = document.getElementById('employeeSelector');
+                    selector.innerHTML = '<option value="">Chọn nhân viên...</option>';
+                    
+                    employees.forEach(emp => {
+                        const option = document.createElement('option');
+                        option.value = emp;
+                        option.textContent = emp;
+                        selector.appendChild(option);
+                    });
+                    
+                    showStatus('✅ Đã tải danh sách nhân viên!', 'success');
+                })
+                .withFailureHandler(function(error) {
+                    showStatus('❌ Lỗi tải danh sách: ' + error.message, 'error');
+                })
+                .getEmployeeList();
+        }
+
+        function loadProductImages() {
+            google.script.run
+                .withSuccessHandler(function(images) {
+                    productImages = images;
+                })
+                .withFailureHandler(function(error) {
+                    console.log('Không thể tải hình ảnh sản phẩm:', error);
+                    productImages = {};
+                })
+                .getProductImages();
+        }
+
+        function loadEmployeeTasks() {
+            const selectedEmployee = document.getElementById('employeeSelector').value;
+            
+            if (!selectedEmployee) {
+                document.getElementById('content').innerHTML = `
+                    <div class="empty-state">
+                        <h3>📋 Chọn nhân viên để xem task</h3>
+                        <p>Chọn nhân viên từ dropdown bên trên để hiển thị danh sách công việc được giao</p>
+                    </div>
+                `;
+                document.getElementById('statsRow').style.display = 'none';
+                return;
+            }
+            
+            showStatus('🔄 Đang tải task cho ' + selectedEmployee + '...', 'loading');
+            
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    if (result.success) {
+                        allTasks = result.tasks;
+                        renderTasks(allTasks);
+                        updateStats(allTasks);
+                        showStatus(`✅ Đã tải ${result.tasks.length} task cho ${selectedEmployee}!`, 'success');
+                    } else {
+                        showStatus('❌ Lỗi: ' + result.error, 'error');
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    showStatus('❌ Không thể tải task: ' + error.message, 'error');
+                })
+                .getEmployeeTasks(selectedEmployee);
+        }
+
+        function renderTasks(tasks) {
+            if (!tasks || tasks.length === 0) {
+                document.getElementById('content').innerHTML = `
+                    <div class="empty-state">
+                        <h3>📭 Không có task nào</h3>
+                        <p>Nhân viên này chưa được giao task nào</p>
+                    </div>
+                `;
+                document.getElementById('statsRow').style.display = 'none';
+                return;
+            }
+            
+            document.getElementById('statsRow').style.display = 'flex';
+            
+            let html = '<div class="task-grid">';
+            
+            tasks.forEach((task, index) => {
+                const urgentClass = task.isUrgent ? 'urgent' : '';
+                const completedClass = task.isCompleted ? 'completed' : '';
+                const statusClass = task.isCompleted ? 'status-completed' : 
+                                   task.isUrgent ? 'status-urgent' : 'status-pending';
+                const statusText = task.isCompleted ? 'Hoàn thành' : 
+                                  task.isUrgent ? 'Khẩn cấp' : 'Đang làm';
+                const deadlineClass = task.isUrgent ? 'deadline-urgent' : '';
+                
+                const productImage = productImages[task.sku] || null;
+                
+                html += `
+                    <div class="task-card ${urgentClass} ${completedClass}">
+                        <div class="task-header">
+                            <div class="task-date">${task.date}</div>
+                            <div class="task-status ${statusClass}">${statusText}</div>
+                        </div>
+                        
+                        <div class="task-shop">🏪 ${task.shop}</div>
+                        <div class="task-item">${task.itemName}</div>
+                        
+                        <div class="task-description">${task.description}</div>
+                        
+                        <div class="task-deadline">
+                            <span class="deadline-label">⏰ Deadline:</span>
+                            <span class="deadline-date ${deadlineClass}">${task.deadline}</span>
+                        </div>
+                        
+                        <div class="task-code">#${task.workingCode}</div>
+                        
+                        ${productImage ? 
+                            `<img src="${productImage}" alt="${task.itemName}" class="product-image" onerror="this.style.display='none'">` :
+                            `<div class="no-image">Không có hình ảnh<br>SKU: ${task.sku || 'N/A'}</div>`
+                        }
+                        
+                        <div class="task-actions">
+                            ${!task.isCompleted ? 
+                                `<button onclick="markCompleted(${index})" class="btn btn-small">✅ Hoàn thành</button>` :
+                                `<button onclick="markPending(${index})" class="btn btn-secondary btn-small">↩️ Mở lại</button>`
+                            }
+                            <button onclick="viewDetails(${index})" class="btn btn-secondary btn-small">👁️ Chi tiết</button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            document.getElementById('content').innerHTML = html;
+        }
+
+        function updateStats(tasks) {
+            const total = tasks.length;
+            const pending = tasks.filter(t => !t.isCompleted).length;
+            const urgent = tasks.filter(t => t.isUrgent && !t.isCompleted).length;
+            const completed = tasks.filter(t => t.isCompleted).length;
+            
+            document.getElementById('totalTasks').textContent = total;
+            document.getElementById('pendingTasks').textContent = pending;
+            document.getElementById('urgentTasks').textContent = urgent;
+            document.getElementById('completedTasks').textContent = completed;
+        }
+
+        function filterTasks() {
+            currentFilter = document.getElementById('dateFilter').value;
+            
+            if (!allTasks || allTasks.length === 0) return;
+            
+            let filteredTasks = allTasks;
+            const today = new Date();
+            
+            switch(currentFilter) {
+                case 'today':
+                    const todayStr = today.toLocaleDateString('vi-VN');
+                    filteredTasks = allTasks.filter(task => 
+                        task.deadline === todayStr || task.date === todayStr
+                    );
+                    break;
+                case 'tomorrow':
+                    const tomorrow = new Date(today);
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    const tomorrowStr = tomorrow.toLocaleDateString('vi-VN');
+                    filteredTasks = allTasks.filter(task => task.deadline === tomorrowStr);
+                    break;
+                case 'week':
+                    const weekEnd = new Date(today);
+                    weekEnd.setDate(weekEnd.getDate() + 7);
+                    filteredTasks = allTasks.filter(task => {
+                        const taskDate = new Date(task.deadline.split('/').reverse().join('/'));
+                        return taskDate >= today && taskDate <= weekEnd;
+                    });
+                    break;
+                case 'overdue':
+                    filteredTasks = allTasks.filter(task => {
+                        const taskDate = new Date(task.deadline.split('/').reverse().join('/'));
+                        return taskDate < today && !task.isCompleted;
+                    });
+                    break;
+                default:
+                    filteredTasks = allTasks;
+            }
+            
+            renderTasks(filteredTasks);
+            updateStats(filteredTasks);
+        }
+
+        function markCompleted(index) {
+            const task = allTasks[index];
+            showStatus('⏳ Đang cập nhật trạng thái...', 'loading');
+            
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    if (result.success) {
+                        task.isCompleted = true;
+                        renderTasks(allTasks);
+                        updateStats(allTasks);
+                        showStatus('✅ Đã đánh dấu hoàn thành!', 'success');
+                    } else {
+                        showStatus('❌ Lỗi cập nhật: ' + result.error, 'error');
+                    }
+                })
+                .updateTaskStatus(task.workingCode, true);
+        }
+
+        function markPending(index) {
+            const task = allTasks[index];
+            showStatus('⏳ Đang cập nhật trạng thái...', 'loading');
+            
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    if (result.success) {
+                        task.isCompleted = false;
+                        renderTasks(allTasks);
+                        updateStats(allTasks);
+                        showStatus('✅ Đã mở lại task!', 'success');
+                    } else {
+                        showStatus('❌ Lỗi cập nhật: ' + result.error, 'error');
+                    }
+                })
+                .updateTaskStatus(task.workingCode, false);
+        }
+
+        function viewDetails(index) {
+            const task = allTasks[index];
+            const details = `
+Task: ${task.itemName}
+Shop: ${task.shop}
+Mô tả: ${task.description}
+Deadline: ${task.deadline}
+Working Code: ${task.workingCode}
+SKU: ${task.sku || 'N/A'}
+Trạng thái: ${task.isCompleted ? 'Hoàn thành' : 'Đang làm'}
+            `;
+            alert(details);
+        }
+
+        function refreshData() {
+            loadEmployeeList();
+            loadProductImages();
+            if (document.getElementById('employeeSelector').value) {
+                loadEmployeeTasks();
+            }
+        }
+
+        // Initialize page
+        window.onload = function() {
+            showStatus('🔄 Đang khởi tạo...', 'loading');
+            loadEmployeeList();
+            loadProductImages();
+        };
+    </script>
+</body>
+</html>
