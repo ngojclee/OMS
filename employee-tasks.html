@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý công việc nhân viên</title>
+    <?!= include('shared-styles'); ?>
+    <style>
+        .controls-panel {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+        }
+        
+        .controls-row {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        
+        .controls-row:last-child {
+            margin-bottom: 0;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .control-label {
+            font-size: 0.9em;
+            font-weight: 600;
+        }
+        
+        .form-input, .form-select {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            background: white;
+            color: #333;
+            min-width: 150px;
+        }
+        
+        .btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.3);
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .btn:hover {
+            background: rgba(255,255,255,0.3);
+            border-color: rgba(255,255,255,0.5);
+        }
+        
+        .btn-primary {
+            background: rgba(255,255,255,0.9);
+            color: #667eea;
+            border-color: transparent;
+        }
+        
+        .btn-success {
+            background: rgba(40,167,69,0.9);
+            border-color: rgba(40,167,69,1);
+        }
+        
+        .btn-danger {
+            background: rgba(220,53,69,0.9);
+            border-color: rgba(220,53,69,1);
+        }
+        
+        .filter-options {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .filter-option {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .filter-option input[type="radio"] {
+            transform: scale(1.2);
+        }
+        
+        .tasks-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .task-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .task-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .task-card.overdue {
+            border-left: 5px solid #dc3545;
+        }
+        
+        .task-card.completed {
+            opacity: 0.8;
+            border-left: 5px solid #28a745;
+        }
+        
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 25px 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .task-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .task-checkbox {
+            transform: scale(1.5);
+            cursor: pointer;
+        }
+        
+        .task-title {
+            font-size: 1em;
+            font-weight: 500;
+            color: #333;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .task-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+        
+        .task-shop-badge, .task-ref-badge, .task-sku-badge {
+            background: #e3f2fd;
+            color: #1565c0;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        
+        .task-ref-badge {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+        
+        .task-sku-badge {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+        
+        .task-sku-empty {
+            background: #fff3e0;
+            color: #ef6c00;
+        }
+        
+        .task-deadline {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+        
+        .deadline-normal {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+        
+        .deadline-overdue {
+            background: #ffcdd2;
+            color: #c62828;
+            animation: urgentBlink 1s infinite;
+        }
+        
+        @keyframes urgentBlink {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+        
+        .task-done {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .done-completed {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .done-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .task-status {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .status-delivery, .status-completion {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+        
+        .status-delivered {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .btn-copy-task {
+            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 0.8em;
+            font-weight: 600;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+        
+        .btn-copy-task:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(255,152,0,0.3);
+        }
+        
+        .task-body {
+            display: grid;
+            grid-template-columns: 1fr 300px 300px;
+            gap: 25px;
+            padding: 25px;
+            align-items: start;
+        }
+        
+        .task-info {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .info-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .info-label {
+            font-weight: 600;
+            color: #495057;
+            min-width: 120px;
+        }
+        
+        .info-value {
+            color: #333;
+        }
+        
+        .working-code {
+            background: #667eea;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+        
+        .description {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            line-height: 1.5;
+        }
+        
+        .image-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .product-image, .result-image {
+            width: 300px;
+            height: 300px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 2px solid #e9ecef;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .product-image:hover, .result-image:hover {
+            transform: scale(1.02);
+        }
+        
+        .image-placeholder {
+            width: 300px;
+            height: 300px;
+            background: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #6c757d;
+            font-size: 0.9em;
+            text-align: center;
+            gap: 15px;
+        }
+        
+        .image-label {
+            font-size: 0.9em;
+            font-weight: 600;
+            color: #495057;
+            text-align: center;
+        }
+        
+        .btn-upload {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+        
+        .btn-upload:hover {
+            transform: translateY(-2px);
+        }
+        
+        .btn-upload-small {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+        
+        .employee-badge {
+            background: #e3f2fd;
+            color: #1565c0;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+        
+        .stats-summary {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        
+        /* Export Modal Styles */
+        .export-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+        
+        .export-content {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            max-width: 90vw;
+            max-height: 90vh;
+            overflow: auto;
+        }
+        
+        .export-task-card {
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            border-left: 5px solid #667eea;
+            padding: 20px;
+            max-width: 600px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        
+        .export-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .export-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .export-badges {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .export-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+        
+        .export-working-code {
+            background: #667eea;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 1.1em;
+            margin-bottom: 15px;
+            display: inline-block;
+        }
+        
+        .export-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .export-info-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .export-description {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            margin-bottom: 15px;
+        }
+        
+        .export-image {
+            width: 200px;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 2px solid #e9ecef;
+            margin: 0 auto 15px;
+            display: block;
+        }
+        
+        .export-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .controls-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .task-body {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .product-image, .result-image, .image-placeholder {
+                width: 100%;
+                max-width: 300px;
+                height: 250px;
+            }
+            
+            .task-header {
+                flex-direction: column;
+                gap: 15px;
+                align-items: flex-start;
+            }
+            
+            .task-right {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            .stats-summary {
+                flex-direction: column;
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="?" class="navbar-brand">🏢 Hệ thống quản lý</a>
+        <div class="navbar-nav">
+            <a href="?" class="nav-link">🏠 Trang chủ</a>
+            <a href="?page=extract-orders" class="nav-link">📦 Đơn hàng</a>
+            <a href="?page=shipping-labels" class="nav-link">🏷️ Tem vận chuyển</a>
+            <a href="?page=employee-tasks" class="nav-link">👥 Giao việc</a>
+            <a href="?page=inventory" class="nav-link">📊 Kho</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Controls Panel -->
+        <div class="controls-panel">
+            <div class="controls-row">
+                <div class="control-group">
+                    <label class="control-label">📅 Từ ngày:</label>
+                    <input type="date" id="startDate" class="form-input">
+                </div>
+                
+                <div class="control-group">
+                    <label class="control-label">📅 Đến ngày:</label>
+                    <input type="date" id="endDate" class="form-input">
+                </div>
+                
+                <div class="control-group">
+                    <label class="control-label">👤 Nhân viên:</label>
+                    <select id="employeeSelector" class="form-select">
+                        <option value="">Chọn nhân viên...</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="controls-row">
+                <div class="control-group">
+                    <label class="control-label">📦 Giao đơn:</label>
+                    <div class="filter-options">
+                        <div class="filter-option">
+                            <input type="radio" name="deliveryFilter" value="pending" id="delivery-pending" checked>
+                            <label for="delivery-pending">Chưa giao</label>
+                        </div>
+                        <div class="filter-option">
+                            <input type="radio" name="deliveryFilter" value="delivered" id="delivery-delivered">
+                            <label for="delivery-delivered">Đã giao</label>
+                        </div>
+                        <div class="filter-option">
+                            <input type="radio" name="deliveryFilter" value="all" id="delivery-all">
+                            <label for="delivery-all">Tất cả</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <label class="control-label">✅ Hoàn thành:</label>
+                    <div class="filter-options">
+                        <div class="filter-option">
+                            <input type="radio" name="completionFilter" value="pending" id="completion-pending" checked>
+                            <label for="completion-pending">Chưa xong</label>
+                        </div>
+                        <div class="filter-option">
+                            <input type="radio" name="completionFilter" value="completed" id="completion-completed">
+                            <label for="completion-completed">Đã xong</label>
+                        </div>
+                        <div class="filter-option">
+                            <input type="radio" name="completionFilter" value="all" id="completion-all">
+                            <label for="completion-all">Tất cả</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="controls-row">
+                <button onclick="fetchTasks()" class="btn btn-primary">🔍 Fetch Tasks</button>
+                <button onclick="confirmDelivery()" class="btn btn-success">📤 Xác nhận giao đơn</button>
+                <button onclick="markCompleted()" class="btn btn-success">✅ Đánh dấu hoàn thành</button>
+                <button onclick="markIncomplete()" class="btn btn-danger">❌ Bỏ hoàn thành</button>
+                <button onclick="runDebug()" class="btn" style="background: rgba(255,165,0,0.9);">🔧 Debug System</button>
+            </div>
+        </div>
+        
+        <!-- Status Message -->
+        <div id="statusMessage"></div>
+        
+        <!-- Stats Summary -->
+        <div class="stats-summary" id="statsSummary" style="display: none;">
+            <div class="stat-item">
+                <div class="stat-number" id="totalTasks">0</div>
+                <div class="stat-label">Tổng task</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="pendingDelivery">0</div>
+                <div class="stat-label">Chưa giao</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="pendingCompletion">0</div>
+                <div class="stat-label">Chưa xong</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="overdueTasks">0</div>
+                <div class="stat-label">Quá hạn</div>
+            </div>
+        </div>
+        
+        <!-- Tasks Container -->
+        <div class="tasks-container" id="tasksContainer">
+            <div class="empty-state">
+                <h3>📋 Chọn nhân viên và fetch tasks</h3>
+                <p>Chọn nhân viên, khoảng thời gian và click "Fetch Tasks" để bắt đầu</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentTasks = [];
+        
+        // Initialize page
+        window.onload = function() {
+            // Set dates to TODAY
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+            
+            document.getElementById('startDate').value = todayStr;
+            document.getElementById('endDate').value = todayStr;
+            
+            console.log('✅ Set dates to TODAY:', todayStr);
+            
+            // Load employee list
+            loadEmployeeList();
+            
+            showStatus('🚀 Sẵn sàng fetch tasks!', 'success');
+        };
+        
+        function showStatus(message, type = 'loading') {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.innerHTML = `<div class="message ${type}">${message}</div>`;
+            
+            if (type !== 'loading') {
+                setTimeout(() => {
+                    statusDiv.innerHTML = '';
+                }, 5000);
+            }
+        }
+        
+        function loadEmployeeList() {
+            showStatus('🔄 Đang tải danh sách nhân viên...', 'loading');
+            
+            google.script.run
+                .withSuccessHandler(function(employees) {
+                    console.log('✅ Employee list received:', employees);
+                    
+                    const selector = document.getElementById('employeeSelector');
+                    selector.innerHTML = '<option value="">Chọn nhân viên...</option>';
+                    
+                    if (!employees || employees.length === 0) {
+                        console.error('❌ Empty employee list received');
+                        showStatus('❌ Không thể tải danh sách nhân viên', 'error');
+                        return;
+                    }
+                    
+                    employees.forEach(emp => {
+                        const option = document.createElement('option');
+                        option.value = emp;
+                        option.textContent = emp;
+                        selector.appendChild(option);
+                    });
+                    
+                    showStatus(`✅ Đã tải ${employees.length} nhân viên!`, 'success');
+                })
+                .withFailureHandler(function(error) {
+                    console.error('❌ Failed to load employee list:', error);
+                    showStatus('❌ Lỗi tải danh sách: ' + error.message, 'error');
+                    
+                    // Fallback: Add default employees
+                    const selector = document.getElementById('employeeSelector');
+                    const defaults = ['All', 'My Nguyen', 'Tuyen Phan', 'Tun Nail'];
+                    
+                    selector.innerHTML = '<option value="">Chọn nhân viên...</option>';
+                    defaults.forEach(emp => {
+                        const option = document.createElement('option');
+                        option.value = emp;
+                        option.textContent = emp;
+                        selector.appendChild(option);
+                    });
+                    
+                    showStatus('⚠️ Sử dụng danh sách mặc định', 'error');
+                })
+                .getEmployeeList();
+        }
+        
+        function getFilters() {
+            const deliveryFilter = document.querySelector('input[name="deliveryFilter"]:checked').value;
+            const completionFilter = document.querySelector('input[name="completionFilter"]:checked').value;
+            
+            return {
+                deliveryStatus: deliveryFilter,
+                completionStatus: completionFilter
+            };
+        }
+        
+        function fetchTasks() {
+            const employeeName = document.getElementById('employeeSelector').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            if (!employeeName) {
+                showStatus('❌ Vui lòng chọn nhân viên!', 'error');
+                return;
+            }
+            
+            if (!startDate || !endDate) {
+                showStatus('❌ Vui lòng chọn khoảng thời gian!', 'error');
+                return;
+            }
+            
+            const filters = getFilters();
+            
+            showStatus(`🔄 Đang fetch tasks cho ${employeeName}...`, 'loading');
+            
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    console.log('Fetch result:', result);
+                    
+                    if (result.success) {
+                        currentTasks = result.tasks;
+                        renderTasks(currentTasks);
+                        updateStats(currentTasks);
+                        showStatus(`✅ Đã tải ${result.tasks.length} tasks!`, 'success');
+                    } else {
+                        showStatus('❌ Lỗi: ' + result.error, 'error');
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    console.error('Fetch error:', error);
+                    showStatus('❌ Không thể fetch: ' + error.message, 'error');
+                })
+                .getEmployeeTasks(employeeName, startDate, endDate, filters);
+        }
+        
+        function renderTasks(tasks) {
+            const container = document.getElementById('tasksContainer');
+            
+            if (!tasks || tasks.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h3>📭 Không có task nào</h3>
+                        <p>Không tìm thấy task phù hợp với điều kiện lọc</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            
+            tasks.forEach((task, index) => {
+                const cardClass = task.isOverdue ? 'task-card overdue' : 
+                                 task.isCompleted ? 'task-card completed' : 'task-card';
+                
+                const deadlineClass = task.isOverdue ? 'task-deadline deadline-overdue' : 
+                                     'task-deadline deadline-normal';
+                
+                const doneStatus = task.isCompleted ? 
+                    `<div class="task-done done-completed" onclick="toggleTaskCompletion(${index})">✅ Done: ${task.completedDate}</div>` :
+                    `<div class="task-done done-pending" onclick="toggleTaskCompletion(${index})">⏰ Chưa xong</div>`;
+                
+                const deliveryStatus = task.isDelivered ? 
+                    '<span class="status-delivery status-delivered">●Đã giao task</span>' :
+                    '<span class="status-delivery status-pending">●Chưa giao task</span>';
+                
+                const productImageHtml = task.productImage ? 
+                    `<img src="${task.productImage}" alt="Product" class="product-image" onclick="openImageModal('${task.productImage}')">` :
+                    `<div class="image-placeholder">Không có<br>hình sản phẩm</div>`;
+                
+                const resultImageHtml = task.resultImageUrl ? 
+                    `<img src="${task.resultImageUrl}" alt="Result" class="result-image" onclick="openImageModal('${task.resultImageUrl}')">
+                     <button onclick="uploadResultImage('${task.workingCode}', '${task.sheetName}')" class="btn-upload-small">🔄 Thay đổi</button>` :
+                    `<div class="image-placeholder">
+                         <div>Chưa có kết quả</div>
+                         <button onclick="uploadResultImage('${task.workingCode}', '${task.sheetName}')" class="btn-upload">📤 Upload Result</button>
+                     </div>`;
+                
+                const employeeBadge = task.employeeName ? 
+                    `<span class="employee-badge">${task.employeeName}</span>` : '';
+                
+                html += `
+                    <div class="${cardClass}">
+                        <div class="task-header">
+                            <div class="task-left">
+                                <input type="checkbox" class="task-checkbox" data-index="${index}">
+                                <span class="task-title">${task.itemName || 'Task'}</span>
+                                ${employeeBadge}
+                            </div>
+                            
+                            <div class="task-right">
+                                ${task.shop ? `<div class="task-shop-badge">🏪 ${task.shop}</div>` : ''}
+                                ${task.originalSKU ? `<div class="task-sku-badge">SKU: ${task.originalSKU}</div>` : `<div class="task-sku-badge task-sku-empty">SKU: ${task.extractedSKU || 'trống'}</div>`}
+                                ${task.refId ? `<div class="task-ref-badge">🔗 ${task.refId}</div>` : ''}
+                                <div class="${deadlineClass}">⏰ ${task.deadline}</div>
+                                ${doneStatus}
+                                <div class="task-status">
+                                    ${deliveryStatus}
+                                </div>
+                                <button onclick="exportTaskVisual(${index})" class="btn-copy-task" title="Export task với hình ảnh">📋 Copy đơn</button>
+                            </div>
+                        </div>
+                        
+                        <div class="task-body">
+                            <div class="task-info">
+                                <div class="working-code">#${task.workingCode}</div>
+                                
+                                <div class="info-row">
+                                    <span class="info-label">📅 Date:</span>
+                                    <span class="info-value">${task.date}</span>
+                                </div>
+                                
+                                <div class="description">
+                                    <strong>📝 Mô tả:</strong><br>
+                                    ${task.description || 'Không có mô tả'}
+                                </div>
+                                
+                                ${task.sku ? `
+                                <div class="info-row">
+                                    <span class="info-label">🏷️ SKU Sheet:</span>
+                                    <span class="info-value">${task.sku}</span>
+                                </div>
+                                ` : ''}
+                            </div>
+                            
+                            <div class="image-container">
+                                ${productImageHtml}
+                                <div class="image-label">📱 Hình sản phẩm</div>
+                            </div>
+                            
+                            <div class="image-container">
+                                ${resultImageHtml}
+                                <div class="image-label">📸 Kết quả nhân viên</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        function updateStats(tasks) {
+            const total = tasks.length;
+            const pendingDelivery = tasks.filter(t => !t.isDelivered).length;
+            const pendingCompletion = tasks.filter(t => !t.isCompleted).length;
+            const overdue = tasks.filter(t => t.isOverdue).length;
+            
+            document.getElementById('totalTasks').textContent = total;
+            document.getElementById('pendingDelivery').textContent = pendingDelivery;
+            document.getElementById('pendingCompletion').textContent = pendingCompletion;
+            document.getElementById('overdueTasks').textContent = overdue;
+            
+            document.getElementById('statsSummary').style.display = 'flex';
+        }
+        
+        function getSelectedTasks() {
+            const checkboxes = document.querySelectorAll('.task-checkbox:checked');
+            const selectedTasks = [];
+            
+            checkboxes.forEach(cb => {
+                const index = parseInt(cb.dataset.index);
+                selectedTasks.push(currentTasks[index]);
+            });
+            
+            return selectedTasks;
+        }
+        
+        function confirmDelivery() {
+            const selectedTasks = getSelectedTasks();
+            
+            if (selectedTasks.length === 0) {
+                showStatus('❌ Vui lòng chọn ít nhất 1 task!', 'error');
+                return;
+            }
+            
+            if (!confirm(`Xác nhận giao ${selectedTasks.length} đơn hàng?`)) {
+                return;
+            }
+            
+            showStatus('⏳ Đang cập nhật trạng thái giao đơn...', 'loading');
+            
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    if (result.success) {
+                        showStatus(result.message, 'success');
+                        fetchTasks(); // Refresh
+                    } else {
+                        showStatus('❌ Lỗi: ' + result.error, 'error');
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    showStatus('❌ Lỗi cập nhật: ' + error.message, 'error');
+                })
+                .updateTasksDelivery(selectedTasks, true);
+        }
+        
+        function markCompleted() {
+            const selectedTasks = getSelectedTasks();
+            
+            if (selectedTasks.length === 0) {
+                showStatus('❌ Vui lòng chọn ít nhất 1 task!', 'error');
+                return;
+            }
+            
+            showStatus('⏳ Đang đánh dấu hoàn thành...', 'loading');
+            
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    if (result.success) {
+                        showStatus(result.message, 'success');
+                        fetchTasks(); // Refresh
+                    } else {
+                        showStatus('❌ Lỗi: ' + result.error, 'error');
+                    }
+                })
+                .updateTasksCompletion(selectedTasks, true);
+        }
+        
+        function markIncomplete() {
+            const selectedTasks = getSelectedTasks();
+            
+            if (selectedTasks.length === 0) {
+                showStatus('❌ Vui lòng chọn ít nhất 1 task!', 'error');
+                return;
+            }
+            
+            showStatus('⏳ Đang bỏ đánh dấu hoàn thành...', 'loading');
+            
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    if (result.success) {
+                        showStatus(result.message, 'success');
+                        fetchTasks(); // Refresh
+                    } else {
+                        showStatus('❌ Lỗi: ' + result.error, 'error');
+                    }
+                })
+                .updateTasksCompletion(selectedTasks, false);
+        }
+        
+        function toggleTaskCompletion(index) {
+            const task = currentTasks[index];
+            const newStatus = !task.isCompleted;
+            
+            showStatus('⏳ Đang cập nhật trạng thái...', 'loading');
+            
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    if (result.success) {
+                        showStatus('✅ Đã cập nhật!', 'success');
+                        fetchTasks(); // Refresh
+                    } else {
+                        showStatus('❌ Lỗi: ' + result.error, 'error');
+                    }
+                })
+                .updateTasksCompletion([task], newStatus);
+        }
+        
+        // Export task as visual (HTML with image)
+        function exportTaskVisual(index) {
+            const task = currentTasks[index];
+            
+            // Create modal
+            const modal = document.createElement('div');
+            modal.className = 'export-modal';
+            modal.onclick = function(e) {
+                if (e.target === modal) {
+                    document.body.removeChild(modal);
+                }
+            };
+            
+            // Create export card
+            const exportCard = createExportCard(task);
+            
+            const modalContent = document.createElement('div');
+            modalContent.className = 'export-content';
+            modalContent.appendChild(exportCard);
+            
+            // Add action buttons
+            const actions = document.createElement('div');
+            actions.className = 'export-actions';
+            actions.innerHTML = `
+                <button onclick="downloadAsImage()" class="btn btn-primary">📸 Download Image</button>
+                <button onclick="copyAsHTML()" class="btn btn-success">📋 Copy HTML</button>
+                <button onclick="closeExportModal()" class="btn btn-secondary">❌ Đóng</button>
+            `;
+            
+            modalContent.appendChild(actions);
+            modal.appendChild(modalContent);
+            document.body.appendChild(modal);
+            
+            // Store current export data
+            window.currentExportCard = exportCard;
+            window.currentExportModal = modal;
+        }
+        
+        function createExportCard(task) {
+            const card = document.createElement('div');
+            card.className = 'export-task-card';
+            
+            const statusBadges = [];
+            if (task.shop) statusBadges.push(`<span class="export-badge" style="background: #e3f2fd; color: #1565c0;">🏪 ${task.shop}</span>`);
+            if (task.originalSKU) statusBadges.push(`<span class="export-badge" style="background: #e8f5e8; color: #2e7d32;">SKU: ${task.originalSKU}</span>`);
+            else if (task.extractedSKU) statusBadges.push(`<span class="export-badge" style="background: #fff3e0; color: #ef6c00;">SKU: ${task.extractedSKU}</span>`);
+            if (task.refId) statusBadges.push(`<span class="export-badge" style="background: #f3e5f5; color: #7b1fa2;">🔗 ${task.refId}</span>`);
+            
+            const completionStatus = task.isCompleted ? 
+                `<span class="export-badge" style="background: #d4edda; color: #155724;">✅ Đã xong</span>` :
+                `<span class="export-badge" style="background: #fff3cd; color: #856404;">⏰ Chưa xong</span>`;
+            
+            const deliveryStatus = task.isDelivered ?
+                `<span class="export-badge" style="background: #d4edda; color: #155724;">●Đã giao task</span>` :
+                `<span class="export-badge" style="background: #fff3cd; color: #856404;">●Chưa giao task</span>`;
+            
+            card.innerHTML = `
+                <div class="export-header">
+                    <div class="export-title">${task.itemName || 'Task'}</div>
+                    <div class="export-badges">
+                        ${statusBadges.join('')}
+                        <span class="export-badge" style="background: ${task.isOverdue ? '#ffcdd2' : '#e3f2fd'}; color: ${task.isOverdue ? '#c62828' : '#1565c0'};">⏰ ${task.deadline}</span>
+                        ${completionStatus}
+                        ${deliveryStatus}
+                    </div>
+                </div>
+                
+                <div class="export-working-code">#${task.workingCode}</div>
+                
+                <div class="export-info">
+                    <div class="export-info-item">
+                        <span style="font-weight: 600;">📅 Date:</span>
+                        <span>${task.date}</span>
+                    </div>
+                    <div class="export-info-item">
+                        <span style="font-weight: 600;">👤 Employee:</span>
+                        <span>${task.employeeName || 'N/A'}</span>
+                    </div>
+                </div>
+                
+                <div class="export-description">
+                    <strong>📝 Mô tả:</strong><br>
+                    ${task.description || 'Không có mô tả'}
+                </div>
+                
+                ${task.productImage ? 
+                    `<img src="${task.productImage}" alt="Product Image" class="export-image" crossorigin="anonymous">` :
+                    `<div style="width: 200px; height: 200px; background: #f8f9fa; border: 2px dashed #dee2e6; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #6c757d; margin: 0 auto 15px;">Không có hình sản phẩm</div>`
+                }
+            `;
+            
+            return card;
+        }
+        
+        function downloadAsImage() {
+            const card = window.currentExportCard;
+            if (!card) return;
+            
+            showStatus('🔄 Đang tạo hình ảnh...', 'loading');
+            
+            // Use html2canvas library (need to add to project)
+            // For now, show instruction
+            showStatus('💡 Để download image, cần thêm html2canvas library. Hiện tại có thể screenshot manually.', 'success');
+        }
+        
+        function copyAsHTML() {
+            const card = window.currentExportCard;
+            if (!card) return;
+            
+            const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 20px; }
+        .export-task-card { background: white; border: 2px solid #ddd; border-radius: 12px; border-left: 5px solid #667eea; padding: 20px; max-width: 600px; }
+        .export-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+        .export-title { font-size: 1.2em; font-weight: 600; color: #333; }
+        .export-badges { display: flex; gap: 8px; flex-wrap: wrap; }
+        .export-badge { padding: 4px 8px; border-radius: 12px; font-size: 0.8em; font-weight: 600; }
+        .export-working-code { background: #667eea; color: white; padding: 8px 16px; border-radius: 20px; font-weight: 600; font-size: 1.1em; margin-bottom: 15px; display: inline-block; }
+        .export-info { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
+        .export-info-item { display: flex; align-items: center; gap: 8px; }
+        .export-description { background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #667eea; margin-bottom: 15px; }
+        .export-image { width: 200px; height: 200px; object-fit: cover; border-radius: 8px; border: 2px solid #e9ecef; margin: 0 auto 15px; display: block; }
+    </style>
+</head>
+<body>
+    ${card.outerHTML}
+</body>
+</html>`;
+            
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(htmlContent).then(() => {
+                    showStatus('✅ Đã copy HTML vào clipboard!', 'success');
+                }).catch(err => {
+                    console.error('Failed to copy: ', err);
+                    fallbackCopyTextToClipboard(htmlContent);
+                });
+            } else {
+                fallbackCopyTextToClipboard(htmlContent);
+            }
+        }
+        
+        function closeExportModal() {
+            const modal = window.currentExportModal;
+            if (modal) {
+                document.body.removeChild(modal);
+                window.currentExportCard = null;
+                window.currentExportModal = null;
+            }
+        }
+        
+        function uploadResultImage(workingCode, sheetName) {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    showStatus('🔄 Đang upload hình ảnh...', 'loading');
+                    
+                    // Simulate upload (replace with actual Drive upload)
+                    setTimeout(() => {
+                        const mockImageUrl = 'https://via.placeholder.com/300x300?text=Uploaded+Image';
+                        
+                        google.script.run
+                            .withSuccessHandler(function(result) {
+                                if (result.success) {
+                                    showStatus('✅ Đã upload hình ảnh!', 'success');
+                                    fetchTasks(); // Refresh
+                                } else {
+                                    showStatus('❌ Lỗi: ' + result.error, 'error');
+                                }
+                            })
+                            .updateTaskResultImage(workingCode, sheetName, mockImageUrl);
+                    }, 2000);
+                }
+            };
+            
+            input.click();
+        }
+        
+        function openImageModal(imageUrl) {
+            window.open(imageUrl, '_blank');
+        }
+        
+        // Fallback copy method for older browsers
+        function fallbackCopyTextToClipboard(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.top = "0";
+            textArea.style.left = "0";
+            textArea.style.position = "fixed";
+            
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showStatus('✅ Đã copy thông tin task vào clipboard!', 'success');
+                } else {
+                    showStatus('❌ Không thể copy. Vui lòng copy thủ công.', 'error');
+                }
+            } catch (err) {
+                console.error('Fallback: Oops, unable to copy', err);
+                showStatus('❌ Không thể copy. Vui lòng copy thủ công.', 'error');
+            }
+            
+            document.body.removeChild(textArea);
+        }
+        
+        // DEBUG FUNCTION - Unified
+        function runDebug() {
+            showStatus('🔧 Running complete system debug...', 'loading');
+            
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    console.log('🔧 Complete Debug result:', result);
+                    
+                    let message = `Debug System completed!\n`;
+                    message += `✅ Success: ${result.success}\n`;
+                    
+                    if (result.success) {
+                        message += `👥 Employees: ${result.employees ? result.employees.length : 0}\n`;
+                        message += `🖼️ Legacy Images: ${result.legacyImageCount}\n`;
+                        message += `🏷️ Product SKUs: ${result.productSKUCount}\n`;
+                        message += `📸 Product Images: ${result.productImageCount}\n`;
+                        
+                        if (result.settings) {
+                            message += `👤 Active employees: ${result.settings.employees.length}\n`;
+                        }
+                    } else {
+                        message += `❌ Error: ${result.error}\n`;
+                    }
+                    
+                    alert(message);
+                    showStatus('✅ System debug completed! Check console for details.', 'success');
+                })
+                .withFailureHandler(function(error) {
+                    console.error('🔧 Debug failed:', error);
+                    alert('Debug failed: ' + error.message);
+                    showStatus('❌ Debug failed: ' + error.message, 'error');
+                })
+                .debugEmployeeSystemComplete();
+        }
+        
+        // Auto refresh when filters change
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('input[name="deliveryFilter"], input[name="completionFilter"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    if (currentTasks.length > 0) {
+                        fetchTasks();
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
