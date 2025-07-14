@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Products Integration - Mr Ngoc Products</title>
+    <?!= include('shared-styles'); ?>
+    <style>
+        .products-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+        }
+        
+        .products-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        
+        .btn-white {
+            background: white;
+            color: #667eea;
+            border: 2px solid white;
+            font-weight: 600;
+        }
+        
+        .btn-white:hover {
+            background: #f8f9fa;
+            color: #5a6fd8;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .products-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .products-table th {
+            background: #667eea;
+            color: white;
+            padding: 15px 10px;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        .products-table td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #eee;
+            font-size: 0.9em;
+        }
+        
+        .products-table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .product-image {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        
+        .sku-code {
+            font-weight: 600;
+            color: #333;
+            font-family: monospace;
+        }
+        
+        .image-status {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 500;
+        }
+        
+        .has-image {
+            background: #d1f2eb;
+            color: #27ae60;
+        }
+        
+        .no-image {
+            background: #fadbd8;
+            color: #e74c3c;
+        }
+        
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+        
+        .search-input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="?" class="navbar-brand">🏢 Hệ thống quản lý</a>
+        <div class="navbar-nav">
+            <a href="?" class="nav-link">🏠 Trang chủ</a>
+            <a href="?page=extract-orders" class="nav-link">📦 Đơn hàng</a>
+            <a href="?page=shipping-labels" class="nav-link">🏷️ Tem vận chuyển</a>
+            <a href="?page=employee-tasks" class="nav-link">👥 Giao việc</a>
+            <a href="?page=inventory" class="nav-link">📊 Kho</a>
+            <a href="?page=products-integration" class="nav-link active">🛍️ Sản phẩm</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                <h1 class="card-title">🛍️ Products Integration - Mr Ngoc Products</h1>
+            </div>
+            
+            <div class="products-section">
+                <div class="products-row">
+                    <button onclick="connectToProducts()" class="btn btn-white" id="connectBtn">
+                        🔗 Connect to Products Sheet
+                    </button>
+                    <button onclick="loadAllProducts()" class="btn btn-white" id="loadBtn" disabled>
+                        📥 Load All Products
+                    </button>
+                    <button onclick="getSKUList()" class="btn btn-white" id="skuBtn" disabled>
+                        📋 Get SKU List
+                    </button>
+                    <button onclick="getImageLinks()" class="btn btn-white" id="imageBtn" disabled>
+                        🖼️ Get Image Links
+                    </button>
+                </div>
+                
+                <div class="products-row">
+                    <button onclick="validateImages()" class="btn btn-white" id="validateBtn" disabled>
+                        ✅ Validate Images
+                    </button>
+                    <button onclick="getSummary()" class="btn btn-white" id="summaryBtn" disabled>
+                        📊 Get Summary
+                    </button>
+                    <button onclick="exportData()" class="btn btn-white" id="exportBtn" disabled>
+                        💾 Export Data
+                    </button>
+                    <span style="font-size: 0.9em; opacity: 0.8;">
+                        💡 Tip: Connect → Load → Explore data
+                    </span>
+                </div>
+            </div>
+            
+            <div id="status"></div>
+            
+            <div class="stats-grid" id="statsSection" style="display: none;">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalProducts">0</div>
+                    <div class="stat-label">Tổng sản phẩm</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="withImages">0</div>
+                    <div class="stat-label">Có hình ảnh</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="withoutImages">0</div>
+                    <div class="stat-label">Không có hình</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="imagePercentage">0%</div>
+                    <div class="stat-label">Tỷ lệ có hình</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="categories">0</div>
+                    <div class="stat-label">Danh mục</div>
+                </div>
+            </div>
+            
+            <div id="searchSection" style="display: none;">
+                <div class="search-box">
+                    <input type="text" class="search-input" id="searchInput" 
+                           placeholder="Tìm kiếm theo SKU hoặc tên sản phẩm..." 
+                           onkeyup="handleSearch(event)">
+                    <button onclick="searchProducts()" class="btn btn-primary">🔍 Tìm kiếm</button>
+                    <button onclick="clearSearch()" class="btn btn-secondary">🗑️ Xóa</button>
+                </div>
+            </div>
+            
+            <div id="content">
+                <div class="empty-state">
+                    <h3>🚀 Sẵn sàng kết nối Products Sheet</h3>
+                    <p>Click "Connect to Products Sheet" để bắt đầu</p>
+                    <p style="font-size: 0.9em; color: #999; margin-top: 15px;">
+                        Sheet ID: 1DDBQbGqradXtZreMgBxzEOhN_eZ1GoeDOoUEQ01oG0w
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allProducts = [];
+        let filteredProducts = [];
+        let connectionInfo = null;
+        let currentView = 'products'; // 'products', 'skus', 'images'
+
+        // Show status message
+        function showStatus(message, type = 'loading') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="message ${type}">${message}</div>`;
+            
+            if (type !== 'loading') {
+                setTimeout(() => {
+                    statusDiv.innerHTML = '';
+                }, 5000);
+            }
+        }
+
+        // Update statistics
+        function updateStats(data = null) {
+            const stats = data || calculateStats();
+            
+            document.getElementById('totalProducts').textContent = stats.totalProducts || 0;
+            document.getElementById('withImages').textContent = stats.withImages || 0;
+            document.getElementById('withoutImages').textContent = stats.withoutImages || 0;
+            document.getElementById('imagePercentage').textContent = (stats.imagePercentage || 0) + '%';
+            document.getElementById('categories').textContent = stats.categories || 0;
+            
+            document.getElementById('statsSection').style.display = 
+                stats.totalProducts > 0 ? 'grid' : 'none';
+        }
+
+        // Calculate statistics from current products
+        function calculateStats() {
+            if (allProducts.length === 0) return {};
+            
+            const withImages = allProducts.filter(p => p.imageUrl && p.imageUrl.trim()).length;
+            const categories = [...new Set(allProducts.map(p => p.category).filter(c => c && c.trim()))].length;
+            
+            return {
+                totalProducts: allProducts.length,
+                withImages: withImages,
+                withoutImages: allProducts.length - withImages,
+                imagePercentage: Math.round((withImages / allProducts.length) * 100),
+                categories: categories
+            };
+        }
+
+        // Update button states
+        function updateButtons(connected = false, hasData = false) {
+            document.getElementById('loadBtn').disabled = !connected;
+            document.getElementById('skuBtn').disabled = !hasData;
+            document.getElementById('imageBtn').disabled = !hasData;
+            document.getElementById('validateBtn').disabled = !hasData;
+            document.getElementById('summaryBtn').disabled = !hasData;
+            document.getElementById('exportBtn').disabled = !hasData;
+            
+            document.getElementById('searchSection').style.display = hasData ? 'block' : 'none';
+        }
+
+        // Connect to Products sheet
+        function connectToProducts() {
+            showStatus('🔗 Đang kết nối đến Products Sheet...', 'loading');
+            
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    if (result.success) {
+                        connectionInfo = result.info;
+                        showStatus(result.message, 'success');
+                        updateButtons(true, false);
+                        
+                        // Show connection info
+                        document.getElementById('content').innerHTML = `
+                            <div class="card" style="background: #f8f9fa; padding: 20px; border-radius: 8px;">
+                                <h4>✅ Kết nối thành công!</h4>
+                                <p><strong>Sheet:</strong> ${connectionInfo.name}</p>
+                                <p><strong>Rows:</strong> ${connectionInfo.rowCount} dòng</p>
+                                <p><strong>Columns:</strong> ${connectionInfo.columnCount} cột</p>
+                                <p><strong>Last Updated:</strong> ${new Date(connectionInfo.lastUpdated).toLocaleString()}</p>
+                                <p style="margin-top: 15px;">
+                                    <em>Click "Load All Products" để tải dữ liệu sản phẩm</em>
+                                </p>
+                            </div>
+                        `;
+                    } else {
+                        showStatus(`❌ ${result.error}`, 'error');
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    showStatus(`❌ Lỗi kết nối: ${error.message}`, 'error');
+                })
+                .connectToProductsSheet();
+        }
+
+        // Load all products
+        function loadAllProducts() {
+            showStatus('📥 Đang tải dữ liệu sản phẩm...', 'loading');
+            
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    if (result.success) {
+                        allProducts = result.data;
+                        filteredProducts = [...allProducts];
+                        
+                        showStatus(result.message, 'success');
+                        updateButtons(true, true);
+                        updateStats();
+                        renderProductsTable();
+                        
+                        currentView = 'products';
+                    } else {
+                        showStatus(`❌ ${result.error}`, 'error');
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    showStatus(`❌ Lỗi tải dữ liệu: ${error.message}`, 'error');
+                })
+                .getAllProductsData();
+        }
+
+        // Get SKU list
+        function getSKUList() {
+            showStatus('📋 Đang trích xuất danh sách SKU...', 'loading');
+            
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    if (result.success) {
+                        showStatus(result.message, 'success');
+                        renderSKUList(result.data);
+                        currentView = 'skus';
+                    } else {
+                        showStatus(`❌ ${result.error}`, 'error');
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    showStatus(`❌ Lỗi trích xuất SKU: ${error.message}`, 'error');
+                })
+                .getProductsSKUList({ format: 'object' });
+        }
+
+        // Get image links
+        function getImageLinks() {
+            showStatus('🖼️ Đang trích xuất links hình ảnh...', 'loading');
+            
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    if (result.success) {
+                        showStatus(result.message, 'success');
+                        renderImageLinks(result.data);
+                        currentView = 'images';
+                        
+                        if (result.warning) {
+                            setTimeout(() => {
+                                showStatus(`⚠️ ${result.warning}`, 'warning');
+                            }, 2000);
+                        }
+                    } else {
+                        showStatus(`❌ ${result.error}`, 'error');
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    showStatus(`❌ Lỗi trích xuất hình ảnh: ${error.message}`, 'error');
+                })
+                .getProductsImageLinks();
+        }
+
+        // Validate images
+        function validateImages() {
+            const imageUrls = allProducts
+                .filter(p => p.imageUrl && p.imageUrl.trim())
+                .map(p => p.imageUrl);
+            
+            if (imageUrls.length === 0) {
+                showStatus('❌ Không có link hình ảnh để kiểm tra', 'error');
+                return;
+            }
+            
+            showStatus(`✅ Đang kiểm tra ${imageUrls.length} links hình ảnh...`, 'loading');
+            
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    if (result.success) {
+                        showStatus(result.message, 'success');
+                        renderValidationResults(result);
+                    } else {
+                        showStatus(`❌ ${result.error}`, 'error');
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    showStatus(`❌ Lỗi kiểm tra: ${error.message}`, 'error');
+                })
+                .validateImageLinks(imageUrls);
+        }
+
+        // Get summary
+        function getSummary() {
+            showStatus('📊 Đang tạo báo cáo tổng hợp...', 'loading');
+            
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    if (result.success) {
+                        showStatus(result.message, 'success');
+                        updateStats(result.data);
+                        renderSummary(result.data);
+                    } else {
+                        showStatus(`❌ ${result.error}`, 'error');
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    showStatus(`❌ Lỗi tạo báo cáo: ${error.message}`, 'error');
+                })
+                .getProductsSummary();
+        }
+
+        // Export data
+        function exportData() {
+            const data = {
+                products: allProducts,
+                summary: calculateStats(),
+                exportTime: new Date().toISOString(),
+                connectionInfo: connectionInfo
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `products-data-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            showStatus('💾 Đã xuất dữ liệu thành công', 'success');
+        }
+
+        // Search products
+        function searchProducts() {
+            const query = document.getElementById('searchInput').value.trim().toLowerCase();
+            
+            if (!query) {
+                filteredProducts = [...allProducts];
+            } else {
+                filteredProducts = allProducts.filter(product => 
+                    product.sku.toLowerCase().includes(query) ||
+                    product.name.toLowerCase().includes(query) ||
+                    (product.category && product.category.toLowerCase().includes(query))
+                );
+            }
+            
+            renderProductsTable();
+            showStatus(`🔍 Tìm thấy ${filteredProducts.length} sản phẩm`, 'success');
+        }
+
+        // Handle search on Enter key
+        function handleSearch(event) {
+            if (event.key === 'Enter') {
+                searchProducts();
+            }
+        }
+
+        // Clear search
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            filteredProducts = [...allProducts];
+            renderProductsTable();
+            showStatus('🗑️ Đã xóa bộ lọc tìm kiếm', 'success');
+        }
+
+        // Render products table
+        function renderProductsTable() {
+            if (filteredProducts.length === 0) {
+                document.getElementById('content').innerHTML = `
+                    <div class="empty-state">
+                        <h3>📭 Không có sản phẩm nào</h3>
+                        <p>Thử tải dữ liệu hoặc thay đổi từ khóa tìm kiếm</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = `
+                <table class="products-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 80px;">Hình ảnh</th>
+                            <th style="width: 120px;">SKU</th>
+                            <th>Tên sản phẩm</th>
+                            <th style="width: 120px;">Danh mục</th>
+                            <th style="width: 100px;">Trạng thái</th>
+                            <th style="width: 60px;">Row</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            filteredProducts.forEach(product => {
+                const hasImage = product.imageUrl && product.imageUrl.trim();
+                const imageHtml = hasImage 
+                    ? `<img src="${product.imageUrl}" class="product-image" onerror="this.style.display='none'">` 
+                    : '<div style="width: 50px; height: 50px; background: #f0f0f0; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 0.8em; color: #999;">No Image</div>';
+                
+                html += `
+                    <tr>
+                        <td>${imageHtml}</td>
+                        <td class="sku-code">${product.sku}</td>
+                        <td>${product.name}</td>
+                        <td>${product.category || 'N/A'}</td>
+                        <td>
+                            <span class="image-status ${hasImage ? 'has-image' : 'no-image'}">
+                                ${hasImage ? '✅ Có hình' : '❌ Không có'}
+                            </span>
+                        </td>
+                        <td>${product.rowIndex}</td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+            document.getElementById('content').innerHTML = html;
+        }
+
+        // Render SKU list
+        function renderSKUList(skuData) {
+            let html = `
+                <div class="card" style="padding: 20px;">
+                    <h3>📋 Danh sách SKU (${skuData.length} SKUs)</h3>
+                    <div style="max-height: 400px; overflow-y: auto; margin-top: 15px;">
+                        <table class="products-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 120px;">SKU</th>
+                                    <th>Tên sản phẩm</th>
+                                    <th style="width: 120px;">Danh mục</th>
+                                    <th style="width: 80px;">Hình ảnh</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+            `;
+            
+            skuData.forEach(item => {
+                html += `
+                    <tr>
+                        <td class="sku-code">${item.sku}</td>
+                        <td>${item.name}</td>
+                        <td>${item.category || 'N/A'}</td>
+                        <td>
+                            <span class="image-status ${item.imageUrl ? 'has-image' : 'no-image'}">
+                                ${item.imageUrl ? '✅' : '❌'}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table></div></div>';
+            document.getElementById('content').innerHTML = html;
+        }
+
+        // Render image links
+        function renderImageLinks(imageData) {
+            let html = `
+                <div class="card" style="padding: 20px;">
+                    <h3>🖼️ Links hình ảnh (${imageData.length} links)</h3>
+                    <div style="max-height: 400px; overflow-y: auto; margin-top: 15px;">
+                        <table class="products-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 80px;">Preview</th>
+                                    <th style="width: 120px;">SKU</th>
+                                    <th>Tên sản phẩm</th>
+                                    <th>Image URL</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+            `;
+            
+            imageData.forEach(item => {
+                html += `
+                    <tr>
+                        <td><img src="${item.imageUrl}" class="product-image" onerror="this.style.display='none'"></td>
+                        <td class="sku-code">${item.sku}</td>
+                        <td>${item.name}</td>
+                        <td style="font-size: 0.8em; word-break: break-all;">
+                            <a href="${item.imageUrl}" target="_blank">${item.imageUrl}</a>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table></div></div>';
+            document.getElementById('content').innerHTML = html;
+        }
+
+        // Render validation results
+        function renderValidationResults(result) {
+            let html = `
+                <div class="card" style="padding: 20px;">
+                    <h3>✅ Kết quả kiểm tra hình ảnh</h3>
+                    <div class="stats-grid" style="margin: 15px 0;">
+                        <div class="stat-card">
+                            <div class="stat-number" style="color: #27ae60;">${result.validCount}</div>
+                            <div class="stat-label">Hợp lệ</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" style="color: #e74c3c;">${result.invalidCount}</div>
+                            <div class="stat-label">Không hợp lệ</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${result.totalCount}</div>
+                            <div class="stat-label">Tổng cộng</div>
+                        </div>
+                    </div>
+            `;
+            
+            if (result.invalidCount > 0) {
+                html += `
+                    <h4 style="color: #e74c3c; margin-top: 20px;">❌ Links không hợp lệ:</h4>
+                    <div style="max-height: 200px; overflow-y: auto;">
+                        <ul>
+                `;
+                
+                result.invalidLinks.forEach(invalid => {
+                    html += `<li><strong>${invalid.url}</strong> - <em>${invalid.reason}</em></li>`;
+                });
+                
+                html += '</ul></div>';
+            }
+            
+            html += '</div>';
+            document.getElementById('content').innerHTML = html;
+        }
+
+        // Render summary
+        function renderSummary(stats) {
+            let html = `
+                <div class="card" style="padding: 20px;">
+                    <h3>📊 Báo cáo tổng hợp sản phẩm</h3>
+                    
+                    <div class="stats-grid" style="margin: 20px 0;">
+                        <div class="stat-card">
+                            <div class="stat-number">${stats.totalProducts}</div>
+                            <div class="stat-label">Tổng sản phẩm</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${stats.withImages}</div>
+                            <div class="stat-label">Có hình ảnh</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${stats.withoutImages}</div>
+                            <div class="stat-label">Không có hình</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${stats.imagePercentage}%</div>
+                            <div class="stat-label">Tỷ lệ có hình</div>
+                        </div>
+                    </div>
+                    
+                    <h4>📁 Danh mục sản phẩm (${stats.categories.length} danh mục):</h4>
+                    <div style="margin: 10px 0;">
+                        ${stats.categories.map(cat => `<span style="background: #e3f2fd; padding: 4px 8px; margin: 2px; border-radius: 12px; font-size: 0.9em;">${cat}</span>`).join(' ')}
+                    </div>
+                    
+                    <h4>🔤 Định dạng SKU:</h4>
+                    <ul>
+                        <li><strong>Số thuần:</strong> ${stats.skuFormats.numeric} SKUs</li>
+                        <li><strong>Chữ + số:</strong> ${stats.skuFormats.alphanumeric} SKUs</li>
+                        <li><strong>Có ký tự đặc biệt:</strong> ${stats.skuFormats.withSpecialChars} SKUs</li>
+                    </ul>
+                </div>
+            `;
+            
+            document.getElementById('content').innerHTML = html;
+        }
+
+        // Initialize page
+        function initializePage() {
+            showStatus('🚀 Sẵn sàng kết nối Products Sheet...', 'success');
+            updateButtons(false, false);
+        }
+
+        // Initialize when page loads
+        window.onload = initializePage;
+        
+        // Performance monitoring
+        console.log('🛍️ Products Integration System Initialized');
+        console.log('📊 Features: Connect → Load → SKU/Images → Validate → Export');
+    </script>
+</body>
+</html>

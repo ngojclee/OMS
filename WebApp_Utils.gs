@@ -290,9 +290,279 @@ function groupBy(array, keyFn) {
   }, {});
 }
 
+/**
+ * Safely find column index by trying multiple possible names
+ * @param {Array} header - Header row array
+ * @param {Array<string>} possibleNames - Array of possible column names to search for
+ * @returns {number} - Column index (1-based for Google Sheets) or -1 if not found
+ */
+function findColumnSafely(header, possibleNames) {
+  if (!Array.isArray(header) || !Array.isArray(possibleNames)) {
+    console.log('findColumnSafely: Invalid input - not arrays');
+    return -1;
+  }
+  
+  console.log(`findColumnSafely: Looking for columns: ${possibleNames.join(', ')}`);
+  
+  for (const name of possibleNames) {
+    const targetName = String(name).trim().toLowerCase();
+    
+    for (let i = 0; i < header.length; i++) {
+      const headerValue = String(header[i] || '').trim().toLowerCase();
+      
+      // Log comparison
+      if (i < 10) { // Only log first 10 columns to avoid spam
+        console.log(`  Comparing "${headerValue}" with "${targetName}"`);
+      }
+      
+      // Exact match
+      if (headerValue === targetName) {
+        console.log(`  ✅ Found match at column ${i + 1}`);
+        return i + 1; // Convert to 1-based index for Google Sheets
+      }
+    }
+  }
+  
+  console.log('  ❌ No match found');
+  return -1; // Not found
+}
+
 // ===================================================================
 // VERSION INFO
 // ===================================================================
+
+/**
+ * Test function to detect Task column in specified sheet
+ * @param {string} testSheetName - Name of sheet to test (default: 'Task_My Nguyen')
+ * @returns {Object} - Test result with column analysis
+ */
+function testTaskColumnDetection(testSheetName = 'Task_My Nguyen') {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(testSheetName);
+    
+    if (!sheet) {
+      return {
+        success: false,
+        error: `Sheet "${testSheetName}" not found`
+      };
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    
+    if (data.length < 3) {
+      return {
+        success: false,
+        error: 'Sheet does not have enough rows (need at least 3)'
+      };
+    }
+    
+    const header = data[2]; // Row 3
+    
+    // Test column H specifically
+    const columnH = header[7]; // Index 7 = Column H
+    
+    const result = {
+      success: true,
+      sheetName: testSheetName,
+      headerRow: 3,
+      totalColumns: header.length,
+      columnHIndex: 7,
+      columnHValue: columnH,
+      columnHIsTask: String(columnH).trim().toLowerCase() === 'task',
+      allColumns: {},
+      taskColumnAnalysis: {},
+      sampleDataRows: []
+    };
+    
+    // Map all columns
+    header.forEach((col, idx) => {
+      const colLetter = String.fromCharCode(65 + idx);
+      result.allColumns[`${colLetter} (${idx + 1})`] = col;
+    });
+    
+    // Find Task column
+    let taskColumnFound = -1;
+    for (let i = 0; i < header.length; i++) {
+      if (String(header[i]).trim().toLowerCase() === 'task') {
+        taskColumnFound = i + 1;
+        break;
+      }
+    }
+    
+    result.taskColumnPosition = taskColumnFound;
+    result.taskColumnLetter = taskColumnFound > 0 ? String.fromCharCode(64 + taskColumnFound) : 'NOT FOUND';
+    
+    // Analyze Task column data if found
+    if (taskColumnFound > 0) {
+      const taskColIndex = taskColumnFound - 1; // Convert to 0-based
+      const taskValues = [];
+      const uniqueValues = new Set();
+      
+      // Sample first 10 data rows (starting from row 4, index 3)
+      for (let i = 3; i < Math.min(data.length, 13); i++) {
+        const row = data[i];
+        const taskValue = row[taskColIndex];
+        const workingCode = row[11] || 'N/A'; // Column L usually has working code
+        
+        taskValues.push({
+          row: i + 1,
+          workingCode: workingCode,
+          taskValue: taskValue,
+          taskValueType: typeof taskValue,
+          taskValueString: String(taskValue)
+        });
+        
+        uniqueValues.add(String(taskValue));
+      }
+      
+      result.taskColumnAnalysis = {
+        columnIndex: taskColIndex,
+        columnLetter: String.fromCharCode(65 + taskColIndex),
+        sampleValues: taskValues,
+        uniqueValues: Array.from(uniqueValues),
+        totalUniqueValues: uniqueValues.size
+      };
+      
+      // Check if column is protected
+      try {
+        const protection = sheet.getRange(4, taskColumnFound).getProtection();
+        result.taskColumnAnalysis.isProtected = protection ? true : false;
+        result.taskColumnAnalysis.protectionDescription = protection ? protection.getDescription() : 'No protection';
+      } catch (e) {
+        result.taskColumnAnalysis.isProtected = false;
+        result.taskColumnAnalysis.protectionDescription = 'Could not check protection';
+      }
+    }
+    
+    return result;
+    
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
+
+/**
+ * Test updating Task column with different values
+ * @param {string} testSheetName - Sheet name to test
+ * @param {string} testWorkingCode - Working code to find and test
+ * @returns {Object} - Test result
+ */
+function testTaskColumnUpdate(testSheetName = 'Task_My Nguyen', testWorkingCode = null) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(testSheetName);
+    
+    if (!sheet) {
+      return { success: false, error: `Sheet "${testSheetName}" not found` };
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    if (data.length < 4) {
+      return { success: false, error: 'Not enough data rows' };
+    }
+    
+    const header = data[2]; // Row 3
+    
+    // Find columns
+    const taskCol = 8; // Column H (fallback)
+    const workingCodeCol = findColumnSafely(header, ['Working Code']);
+    
+    if (workingCodeCol === -1) {
+      return { success: false, error: 'Working Code column not found' };
+    }
+    
+    // Find a test row
+    let testRow = -1;
+    let testRowWorkingCode = testWorkingCode;
+    
+    if (!testWorkingCode) {
+      // Use first available working code
+      for (let i = 3; i < data.length; i++) {
+        const code = String(data[i][workingCodeCol - 1] || '').trim();
+        if (code) {
+          testRow = i + 1;
+          testRowWorkingCode = code;
+          break;
+        }
+      }
+    } else {
+      // Find specific working code
+      for (let i = 3; i < data.length; i++) {
+        const code = String(data[i][workingCodeCol - 1] || '').trim();
+        if (code === testWorkingCode) {
+          testRow = i + 1;
+          break;
+        }
+      }
+    }
+    
+    if (testRow === -1) {
+      return { success: false, error: 'No test row found' };
+    }
+    
+    // Test different values
+    const testValues = ['x', 'X', '✓', '1', formatDate(new Date()), 'DELIVERED'];
+    const results = [];
+    
+    // Get original value
+    const originalValue = sheet.getRange(testRow, taskCol).getValue();
+    
+    for (const testValue of testValues) {
+      try {
+        // Set test value
+        sheet.getRange(testRow, taskCol).setValue(testValue);
+        
+        // Verify it was set
+        const newValue = sheet.getRange(testRow, taskCol).getValue();
+        
+        results.push({
+          testValue: testValue,
+          setValue: testValue,
+          actualValue: newValue,
+          success: String(newValue) === String(testValue),
+          type: typeof newValue
+        });
+        
+        // Wait a bit
+        Utilities.sleep(100);
+        
+      } catch (error) {
+        results.push({
+          testValue: testValue,
+          success: false,
+          error: error.toString()
+        });
+      }
+    }
+    
+    // Restore original value
+    try {
+      sheet.getRange(testRow, taskCol).setValue(originalValue);
+    } catch (e) {
+      console.warn('Could not restore original value:', e);
+    }
+    
+    return {
+      success: true,
+      testRow: testRow,
+      testColumn: taskCol,
+      testWorkingCode: testRowWorkingCode,
+      originalValue: originalValue,
+      testResults: results,
+      message: `Tested ${results.length} values on row ${testRow}, column ${taskCol}`
+    };
+    
+  } catch (error) {
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
+}
 
 /**
  * Get version information for this utilities module
@@ -309,7 +579,8 @@ function getUtilsVersion() {
       'getSheetsList', 'getDataFromSheet', 'createHeaderMap',
       'validateRequiredColumns', 'validateDateRange',
       'createErrorResponse', 'createSuccessResponse',
-      'logWithContext', 'removeDuplicates', 'groupBy'
+      'logWithContext', 'removeDuplicates', 'groupBy', 'findColumnSafely',
+      'testTaskColumnDetection'
     ]
   };
 }
