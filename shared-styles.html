@@ -894,6 +894,106 @@
     background: var(--bg-surface);
     box-shadow: var(--shadow-lg);
   }
+
+  /* Tables - Shopify Style */
+  .table-container {
+    width: 100%;
+    overflow-x: auto;
+    margin: var(--space-4) 0;
+    border-radius: var(--border-radius-base);
+    box-shadow: var(--shadow-base);
+    border: 1px solid var(--border-subdued);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--bg-surface);
+    font-size: 14px;
+    table-layout: fixed;
+  }
+
+  th {
+    background: var(--bg-surface-subdued);
+    color: var(--text-primary);
+    font-weight: 600;
+    padding: var(--space-3) var(--space-4);
+    text-align: left;
+    border-bottom: 2px solid var(--border-default);
+    border-right: 1px solid var(--border-subdued);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  th:last-child {
+    border-right: none;
+  }
+
+  td {
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--border-subdued);
+    border-right: 1px solid var(--border-subdued);
+    vertical-align: top;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+
+  td:last-child {
+    border-right: none;
+  }
+
+  tr:hover {
+    background: var(--bg-surface-hover);
+  }
+
+  tr.packed {
+    background: var(--bg-surface-success);
+  }
+
+  tr.packed:hover {
+    background: var(--shopify-green-light);
+  }
+
+  /* Table Column Widths */
+  .col-date { width: 100px; }
+  .col-shop { width: 80px; }
+  .col-order-code { width: 120px; }
+  .col-short-invoice { width: 100px; }
+  .col-checkbox { width: 80px; text-align: center; }
+  .col-short-tracking { width: 120px; }
+  .col-tracking { width: 180px; }
+  .col-carrier { width: 100px; }
+  .col-receiver { width: 200px; }
+
+  /* Checkbox in table */
+  td input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--shopify-green);
+    cursor: pointer;
+  }
+
+  /* Responsive table */
+  @media (max-width: 768px) {
+    .table-container {
+      font-size: 12px;
+    }
+    
+    th, td {
+      padding: var(--space-2) var(--space-3);
+    }
+    
+    .col-date { width: 80px; }
+    .col-shop { width: 60px; }
+    .col-order-code { width: 100px; }
+    .col-short-invoice { width: 80px; }
+    .col-checkbox { width: 60px; }
+    .col-short-tracking { width: 100px; }
+    .col-tracking { width: 150px; }
+    .col-carrier { width: 80px; }
+    .col-receiver { width: 150px; }
+  }
   
   /* Utility Classes */
   .text-center { text-align: center; }

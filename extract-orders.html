@@ -6,7 +6,7 @@
     <title>Trích xuất đơn hàng</title>
     <?!= include('shared-styles'); ?>
     <style>
-        /* OVERRIDE: Remove any conflicting table styles */
+        /* Container override for wider tables */
         .container {
             max-width: 95% !important;
             margin: var(--space-6) auto !important;
@@ -65,8 +65,19 @@
             letter-spacing: 0.5px;
         }
         
-        /* IMPORTANT: Remove custom table CSS that conflicts with shared-styles */
-        /* All table styles are now handled by shared-styles.html */
+        /* Responsive stats for mobile */
+        @media (max-width: 768px) {
+            .stats-row {
+                grid-template-columns: repeat(2, 1fr);
+                gap: var(--space-3);
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .stats-row {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>

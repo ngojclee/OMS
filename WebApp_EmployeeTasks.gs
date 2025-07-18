@@ -1668,11 +1668,21 @@ function updateTaskResultImage(employeeName, workingCode, imageUrl) {
       'Mã công việc'
     ]);
     
-    // Result IMG column is Column R (index 17, 1-based = 18)
-    const resultImgCol = 18; // Column R
+    // Find Result IMG column dynamically (was Column R, now might be Column S due to new Column L)
+    const resultImgCol = findColumnSafely(header, [
+      'Result IMG',
+      'Result Image',
+      'Result_IMG',
+      'ResultIMG',
+      'Kết quả'
+    ]);
     
     if (workingCodeCol === -1) {
       return createErrorResponse('Không tìm thấy cột Working Code trong header');
+    }
+    
+    if (resultImgCol === -1) {
+      return createErrorResponse('Không tìm thấy cột Result IMG trong header');
     }
     
     // Search for matching working code in data rows (starting from row 4, index 3)
@@ -1681,16 +1691,16 @@ function updateTaskResultImage(employeeName, workingCode, imageUrl) {
       const code = safeString(row[workingCodeCol - 1]);
       
       if (code === workingCode) {
-        // Update Result IMG column (Column R)
+        // Update Result IMG column (dynamically found)
         sheet.getRange(i + 1, resultImgCol).setValue(imageUrl);
         
-        logWithContext('EmployeeTasks', `Updated Result IMG: Row ${i + 1}, Column R with URL: ${imageUrl}`);
+        logWithContext('EmployeeTasks', `Updated Result IMG: Row ${i + 1}, Column ${String.fromCharCode(64 + resultImgCol)} with URL: ${imageUrl}`);
         
         return {
           success: true,
           data: {
             rowUpdated: i + 1,
-            column: 'R',
+            column: String.fromCharCode(64 + resultImgCol),
             workingCode: workingCode,
             imageUrl: imageUrl
           },
