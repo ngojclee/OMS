@@ -661,14 +661,241 @@
     outline-offset: 2px;
   }
   
-  /* Loading Animations */
+  /* Loading Animations - Enhanced */
   @keyframes spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
   }
   
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  
+  @keyframes bounce {
+    0%, 20%, 53%, 80%, 100% { transform: translate3d(0,0,0); }
+    40%, 43% { transform: translate3d(0, -8px, 0); }
+    70% { transform: translate3d(0, -4px, 0); }
+    90% { transform: translate3d(0, -2px, 0); }
+  }
+  
+  @keyframes dots {
+    0%, 20% { color: rgba(0,0,0,0); text-shadow: .25em 0 0 rgba(0,0,0,0), .5em 0 0 rgba(0,0,0,0); }
+    40% { color: var(--shopify-blue); text-shadow: .25em 0 0 rgba(0,0,0,0), .5em 0 0 rgba(0,0,0,0); }
+    60% { text-shadow: .25em 0 0 var(--shopify-blue), .5em 0 0 rgba(0,0,0,0); }
+    80%, 100% { text-shadow: .25em 0 0 var(--shopify-blue), .5em 0 0 var(--shopify-blue); }
+  }
+  
+  @keyframes ripple {
+    0% { transform: scale(0); opacity: 1; }
+    100% { transform: scale(4); opacity: 0; }
+  }
+  
+  /* Loading Spinner Components */
   .loading {
     animation: spin 1s linear infinite;
+  }
+  
+  .loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border-subdued);
+    border-radius: 50%;
+    border-top-color: var(--shopify-blue);
+    animation: spin 0.8s ease-in-out infinite;
+  }
+  
+  .loading-spinner-large {
+    width: 40px;
+    height: 40px;
+    border-width: 3px;
+  }
+  
+  .loading-dots {
+    display: inline-block;
+    font-size: 16px;
+    font-weight: bold;
+    color: var(--shopify-blue);
+  }
+  
+  .loading-dots::after {
+    content: '...';
+    animation: dots 1.5s steps(5, end) infinite;
+  }
+  
+  .loading-pulse {
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  
+  .loading-bounce {
+    animation: bounce 1s ease-in-out infinite;
+  }
+  
+  /* Loading Overlay */
+  .loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    backdrop-filter: blur(2px);
+  }
+  
+  .loading-content {
+    text-align: center;
+    padding: var(--space-6);
+    background: var(--bg-surface);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-xl);
+    border: 1px solid var(--border-subdued);
+  }
+  
+  .loading-content .loading-spinner-large {
+    margin-bottom: var(--space-3);
+  }
+  
+  .loading-text {
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+  }
+  
+  /* Button Loading States */
+  .btn.loading {
+    position: relative;
+    color: transparent;
+    pointer-events: none;
+  }
+  
+  .btn.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 16px;
+    height: 16px;
+    border: 2px solid currentColor;
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 0.8s linear infinite;
+    color: inherit;
+  }
+  
+  .btn-primary.loading::after {
+    border-color: white;
+    border-top-color: transparent;
+  }
+  
+  /* Progress Indicators */
+  .progress-bar {
+    width: 100%;
+    height: 4px;
+    background: var(--border-subdued);
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+  }
+  
+  .progress-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--shopify-blue),
+      transparent
+    );
+    animation: progress-slide 1.5s ease-in-out infinite;
+  }
+  
+  @keyframes progress-slide {
+    0% { left: -100%; }
+    100% { left: 100%; }
+  }
+  
+  /* Skeleton Loading */
+  .skeleton {
+    background: linear-gradient(90deg, 
+      var(--bg-surface-subdued) 25%, 
+      var(--bg-surface-hover) 50%, 
+      var(--bg-surface-subdued) 75%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+    border-radius: var(--border-radius-base);
+  }
+  
+  @keyframes skeleton-loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  
+  .skeleton-text {
+    height: 1em;
+    margin-bottom: var(--space-2);
+  }
+  
+  .skeleton-text:last-child {
+    margin-bottom: 0;
+    width: 60%;
+  }
+  
+  /* Ripple Effect */
+  .ripple {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .ripple::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+  }
+  
+  .ripple:active::before {
+    width: 300px;
+    height: 300px;
+  }
+  
+  /* Loading States for Specific Elements */
+  .table-loading {
+    position: relative;
+    pointer-events: none;
+    opacity: 0.6;
+  }
+  
+  .table-loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 30px;
+    height: 30px;
+    border: 3px solid var(--border-subdued);
+    border-radius: 50%;
+    border-top-color: var(--shopify-blue);
+    animation: spin 1s linear infinite;
+    background: var(--bg-surface);
+    box-shadow: var(--shadow-lg);
   }
   
   /* Utility Classes */
@@ -799,24 +1026,177 @@
   // Add smooth scroll behavior
   document.documentElement.style.scrollBehavior = 'smooth';
   
-  // Add loading indicator for forms
-  function addLoadingToButton(button, originalText) {
-    if (button) {
-      button.disabled = true;
-      button.innerHTML = `<span class="loading">⏳</span> ${originalText}`;
-      button.style.pointerEvents = 'none';
+  // Enhanced Loading Functions
+  function showLoadingOverlay(message = 'Đang tải...') {
+    // Remove existing overlay
+    const existingOverlay = document.querySelector('.loading-overlay');
+    if (existingOverlay) {
+      existingOverlay.remove();
+    }
+    
+    // Create new overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'loading-overlay';
+    overlay.innerHTML = `
+      <div class="loading-content">
+        <div class="loading-spinner loading-spinner-large"></div>
+        <div class="loading-text">${message}</div>
+      </div>
+    `;
+    
+    document.body.appendChild(overlay);
+    
+    // Auto-remove after 30 seconds (safety)
+    setTimeout(() => {
+      if (document.contains(overlay)) {
+        overlay.remove();
+      }
+    }, 30000);
+    
+    return overlay;
+  }
+  
+  function hideLoadingOverlay() {
+    const overlay = document.querySelector('.loading-overlay');
+    if (overlay) {
+      overlay.style.opacity = '0';
+      overlay.style.transform = 'scale(0.95)';
+      overlay.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+      
+      setTimeout(() => {
+        if (document.contains(overlay)) {
+          overlay.remove();
+        }
+      }, 300);
     }
   }
   
-  function removeLoadingFromButton(button, originalText) {
-    if (button) {
-      button.disabled = false;
-      button.innerHTML = originalText;
-      button.style.pointerEvents = '';
+  // Enhanced button loading with different spinner types
+  function addLoadingToButton(button, originalText, spinnerType = 'default') {
+    if (!button) return;
+    
+    button.disabled = true;
+    button.setAttribute('data-original-text', originalText);
+    
+    switch (spinnerType) {
+      case 'dots':
+        button.innerHTML = `<span class="loading-dots"></span> ${originalText}`;
+        break;
+      case 'pulse':
+        button.innerHTML = `<span class="loading-pulse">⏳</span> ${originalText}`;
+        break;
+      case 'bounce':
+        button.innerHTML = `<span class="loading-bounce">●</span> ${originalText}`;
+        break;
+      default:
+        button.classList.add('loading');
+        button.innerHTML = originalText;
+    }
+    
+    button.style.pointerEvents = 'none';
+  }
+  
+  function removeLoadingFromButton(button, customText = null) {
+    if (!button) return;
+    
+    button.disabled = false;
+    button.classList.remove('loading');
+    
+    const originalText = customText || button.getAttribute('data-original-text') || button.innerHTML;
+    button.innerHTML = originalText;
+    button.style.pointerEvents = '';
+    button.removeAttribute('data-original-text');
+  }
+  
+  // Progress bar helper
+  function showProgressBar(container, duration = 3000) {
+    const progressBar = document.createElement('div');
+    progressBar.className = 'progress-bar';
+    
+    if (typeof container === 'string') {
+      container = document.querySelector(container);
+    }
+    
+    if (container) {
+      container.appendChild(progressBar);
+      
+      setTimeout(() => {
+        if (document.contains(progressBar)) {
+          progressBar.remove();
+        }
+      }, duration);
+    }
+    
+    return progressBar;
+  }
+  
+  // Skeleton loading for content
+  function createSkeleton(lines = 3, container = null) {
+    const skeleton = document.createElement('div');
+    skeleton.style.padding = 'var(--space-4)';
+    
+    for (let i = 0; i < lines; i++) {
+      const line = document.createElement('div');
+      line.className = 'skeleton skeleton-text';
+      skeleton.appendChild(line);
+    }
+    
+    if (container) {
+      if (typeof container === 'string') {
+        container = document.querySelector(container);
+      }
+      if (container) {
+        container.appendChild(skeleton);
+      }
+    }
+    
+    return skeleton;
+  }
+  
+  // Table loading state
+  function setTableLoading(table, isLoading = true) {
+    if (typeof table === 'string') {
+      table = document.querySelector(table);
+    }
+    
+    if (!table) return;
+    
+    if (isLoading) {
+      table.classList.add('table-loading');
+    } else {
+      table.classList.remove('table-loading');
     }
   }
   
-  // Make these functions globally available
-  window.addLoadingToButton = addLoadingToButton;
-  window.removeLoadingFromButton = removeLoadingFromButton;
+  // Auto-apply ripple effect to buttons
+  document.addEventListener('DOMContentLoaded', function() {
+    // Add ripple effect to all buttons
+    document.querySelectorAll('.btn').forEach(btn => {
+      btn.classList.add('ripple');
+    });
+    
+    // Enhance existing loading indicators
+    const existingSpinners = document.querySelectorAll('.loading');
+    existingSpinners.forEach(spinner => {
+      if (!spinner.classList.contains('loading-spinner')) {
+        spinner.innerHTML = '●';
+        spinner.classList.add('loading-bounce');
+      }
+    });
+  });
+  
+  // Global loading state management
+  window.LoadingManager = {
+    overlay: showLoadingOverlay,
+    hideOverlay: hideLoadingOverlay,
+    button: addLoadingToButton,
+    removeButton: removeLoadingFromButton,
+    progress: showProgressBar,
+    skeleton: createSkeleton,
+    table: setTableLoading
+  };
+  
+  // Make enhanced functions globally available
+  window.showLoadingOverlay = showLoadingOverlay;
+  window.hideLoadingOverlay = hideLoadingOverlay;
 </script>
