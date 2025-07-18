@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ thống quản lý phòng ban</title>
+    <title>Hệ thống quản lý đơn hàng</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -128,7 +128,7 @@
 <body>
     <div class="home-container">
         <div class="home-header">
-            <h1>🏢 Hệ thống quản lý phòng ban</h1>
+            <h1>🏢 Hệ thống quản lý đơn hàng</h1>
             <p class="subtitle">Chọn chức năng bạn muốn sử dụng</p>
         </div>
         
@@ -151,7 +151,7 @@
             
             <div class="menu-card labels" onclick="navigateToPage('label-script')" style="background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);">
                 <span class="card-icon">🏷️</span>
-                <div class="card-title-menu">Label Script</div>
+                <div class="card-title-menu">In nhãn gửi hàng</div>
                 <div class="card-desc">Công cụ nâng cao để xử lý và tùy chỉnh shipping labels từ nhiều sheet khác nhau</div>
             </div>
             
@@ -228,7 +228,7 @@
             }
             
             // Method 4: Use your production deployment URL as fallback
-            const productionDeploymentUrl = 'https://script.google.com/macros/s/AKfycby3_cQ2DWiqO8F6EMRSl2-cnlN0vGpXORhuFC2edngTaSNKREIdEQKkoefdDU5xA1y6/exec';
+            const productionDeploymentUrl = 'https://script.google.com/macros/s/AKfycbz4RmUTpx0jIeRgX4KmNIqXOFsEiHd20Ixgev2ZfYN2tghfZeNP3KAk5ff1f10klupF/exec';
             console.log('Using production deployment URL fallback:', productionDeploymentUrl);
             return productionDeploymentUrl;
         }
@@ -462,7 +462,7 @@
         // Manual URL setter (if needed)
         window.setDeploymentUrl = function(url) {
             if (!url) {
-                url = prompt('Nhập deployment URL:', 'https://script.google.com/macros/s/AKfycbyBre43Wuk7gDLpjFWJX6pbkoCkAcGBAVTieO4WNg0/dev');
+                url = prompt('Nhập deployment URL:', 'https://script.google.com/macros/s/AKfycbz4RmUTpx0jIeRgX4KmNIqXOFsEiHd20Ixgev2ZfYN2tghfZeNP3KAk5ff1f10klupF/dev');
             }
             
             if (url && url.includes('script.google.com/macros')) {

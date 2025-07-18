@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>In tem vận chuyển</title>
+    <?!= include('shared-styles'); ?>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="?" class="navbar-brand">🏢 Hệ thống quản lý</a>
+        <div class="navbar-nav">
+            <a href="?" class="nav-link">🏠 Trang chủ</a>
+            <a href="?page=extract-orders" class="nav-link">📦 Đơn hàng</a>
+            <a href="?page=shipping-labels" class="nav-link">🏷️ Tem vận chuyển</a>
+            <a href="?page=inventory" class="nav-link">📊 Kho</a>
+            <a href="?page=reports" class="nav-link">📈 Báo cáo</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="card">
+            <div class="card-header">
+                <h1 class="card-title">🏷️ In tem vận chuyển</h1>
+            </div>
+            
+            <div class="no-print">
+                <div class="controls">
+                    <select id="sheetSelector" onchange="updateSheetSelection()">
+                        <option value="">Chọn sheet...</option>
+                    </select>
+                    <button onclick="loadLabels()" id="loadBtn" class="btn">🔄 Tải dữ liệu</button>
+                    <button onclick="refreshSheets()" class="btn btn-secondary">🔄 Làm mới</button>
+                </div>
+                
+                <div class="controls">
+                    <button onclick="addPageBreaks(15)" class="btn">📄 15 tem/trang</button>
+                    <button onclick="addPageBreaks(18)" class="btn">📄 18 tem/trang</button>
+                    <button onclick="addPageBreaks(21)" class="btn">📄 21 tem/trang</button>
+                    <button onclick="window.print()" id="printBtn" class="btn">🖨️ In tất cả</button>
+                </div>
+            </div>
+            
+            <div id="status"></div>
+            
+            <div class="stats no-print" id="stats" style="display: none;">
+                <div class="stat-item">
+                    <div class="stat-number" id="totalLabels">0</div>
+                    <div class="stat-label">Tem</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="totalPages">0</div>
+                    <div class="stat-label">Trang</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="lastUpdate">-</div>
+                    <div class="stat-label">Cập nhật</div>
+                </div>
+            </div>
+            
+            <div id="content">
+                <div style="text-align: center; padding: 60px 20px; color: #666;">
+                    <h3>🚀 Sẵn sàng tạo tem</h3>
+                    <p>Chọn sheet và click "Tải dữ liệu" để bắt đầu</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentLabels = [];
+
+        function showStatus(message, type = 'loading') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="message ${type}">${message}</div>`;
+            
+            if (type !== 'loading') {
+                setTimeout(() => {
+                    statusDiv.innerHTML = '';
+                }, 5000);
+            }
+        }
+
+        function updateStats(labelCount, pageCount) {
+            document.getElementById('totalLabels').textContent = labelCount;
+            document.getElementById('totalPages').textContent = pageCount;
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+            document.getElementById('stats').style.display = 'flex';
+        }
+
+        function loadSheetsList() {
+            google.script.run
+                .withSuccessHandler(function(sheets) {
+                    const selector = document.getElementById('sheetSelector');
+                    selector.innerHTML = '<option value="">Chọn sheet...</option>';
+                    
+                    sheets.forEach(sheetName => {
+                        const option = document.createElement('option');
+                        option.value = sheetName;
+                        option.textContent = sheetName;
+                        selector.appendChild(option);
+                    });
+                    
+                    if (sheets.includes('Label')) {
+                        selector.value = 'Label';
+                        updateSheetSelection();
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    showStatus('❌ Lỗi tải danh sách sheet: ' + error.message, 'error');
+                })
+                .getSheetsList();
+        }
+
+        function updateSheetSelection() {
+            const selectedSheet = document.getElementById('sheetSelector').value;
+            const loadBtn = document.getElementById('loadBtn');
+            
+            loadBtn.disabled = !selectedSheet;
+            
+            if (selectedSheet) {
+                loadBtn.textContent = `🔄 Tải từ "${selectedSheet}"`;
+            } else {
+                loadBtn.textContent = '🔄 Tải dữ liệu';
+            }
+        }
+
+        function refreshSheets() {
+            showStatus('🔄 Đang làm mới danh sách sheet...', 'loading');
+            loadSheetsList();
+            setTimeout(() => showStatus('✅ Đã cập nhật danh sách sheet!', 'success'), 1000);
+        }
+
+        function loadLabels() {
+            const selectedSheet = document.getElementById('sheetSelector').value;
+            
+            if (!selectedSheet) {
+                showStatus('❌ Vui lòng chọn sheet trước', 'error');
+                return;
+            }
+            
+            showStatus('🔄 Đang tải dữ liệu từ ' + selectedSheet + '...', 'loading');
+            
+            google.script.run
+                .withSuccessHandler(function(result) {
+                    if (result.success) {
+                        currentLabels = result.data;
+                        renderLabels(currentLabels);
+                        showStatus(`✅ Đã tải ${result.count} tem thành công!`, 'success');
+                    } else {
+                        showStatus('❌ Lỗi: ' + result.error, 'error');
+                    }
+                })
+                .withFailureHandler(function(error) {
+                    showStatus('❌ Không thể tải: ' + error.message, 'error');
+                })
+                .getDataFromSheet(selectedSheet);
+        }
+
+        function renderLabels(labels) {
+            if (!labels || labels.length === 0) {
+                document.getElementById('content').innerHTML = `
+                    <div style="text-align: center; padding: 60px 20px; color: #666;">
+                        <h3>📭 Không tìm thấy tem</h3>
+                        <p>Sheet đã chọn có vẻ trống hoặc không có dữ liệu tem hợp lệ</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '<div class="labels-grid">';
+            
+            labels.forEach((label, index) => {
+                html += `
+                    <div class="label-box">
+                        <div class="label-code">#${label.code}</div>
+                        <div class="label-customer">${label.customer}</div>
+                        <div class="label-address">
+                            ${label.address.map(addr => `<div>${addr}</div>`).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            document.getElementById('content').innerHTML = html;
+            
+            const estimatedPages = Math.ceil(labels.length / 18);
+            updateStats(labels.length, estimatedPages);
+            
+            setTimeout(() => addPageBreaks(18), 500);
+        }
+
+        function addPageBreaks(labelsPerPage = 18) {
+            const labelBoxes = document.querySelectorAll('.label-box');
+            
+            labelBoxes.forEach(box => box.classList.remove('page-break'));
+            
+            for (let i = labelsPerPage; i < labelBoxes.length; i += labelsPerPage) {
+                if (labelBoxes[i]) {
+                    labelBoxes[i].classList.add('page-break');
+                }
+            }
+            
+            const totalPages = Math.ceil(labelBoxes.length / labelsPerPage);
+            showStatus(`📄 Đã chia trang: ${labelsPerPage} tem/trang (${totalPages} trang)`, 'success');
+            updateStats(labelBoxes.length, totalPages);
+        }
+
+        window.onload = function() {
+            showStatus('🔄 Đang khởi tạo...', 'loading');
+            loadSheetsList();
+        };
+    </script>
+</body>
+</html>
