@@ -661,7 +661,7 @@
     outline-offset: 2px;
   }
   
-  /* Loading Animations - Enhanced */
+  /* Loading Animations - Fixed Conflicts */
   @keyframes spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
@@ -691,10 +691,18 @@
     100% { transform: scale(4); opacity: 0; }
   }
   
-  /* Loading Spinner Components */
-  .loading {
-    animation: spin 1s linear infinite;
+  @keyframes progress-slide {
+    0% { left: -100%; }
+    100% { left: 100%; }
   }
+  
+  @keyframes skeleton-loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  
+  /* FIXED: Remove global .loading class to prevent conflicts */
+  /* Only use specific loading classes */
   
   .loading-spinner {
     display: inline-block;
@@ -766,14 +774,14 @@
     font-weight: 500;
   }
   
-  /* Button Loading States */
-  .btn.loading {
+  /* Button Loading States - FIXED */
+  .btn.btn-loading {
     position: relative;
-    color: transparent;
+    color: transparent !important;
     pointer-events: none;
   }
   
-  .btn.loading::after {
+  .btn.btn-loading::after {
     content: '';
     position: absolute;
     top: 50%;
@@ -785,10 +793,9 @@
     border-radius: 50%;
     border-top-color: transparent;
     animation: spin 0.8s linear infinite;
-    color: inherit;
   }
   
-  .btn-primary.loading::after {
+  .btn-primary.btn-loading::after {
     border-color: white;
     border-top-color: transparent;
   }
@@ -819,11 +826,6 @@
     animation: progress-slide 1.5s ease-in-out infinite;
   }
   
-  @keyframes progress-slide {
-    0% { left: -100%; }
-    100% { left: 100%; }
-  }
-  
   /* Skeleton Loading */
   .skeleton {
     background: linear-gradient(90deg, 
@@ -834,11 +836,6 @@
     background-size: 200% 100%;
     animation: skeleton-loading 1.5s infinite;
     border-radius: var(--border-radius-base);
-  }
-  
-  @keyframes skeleton-loading {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
   }
   
   .skeleton-text {
@@ -1026,7 +1023,7 @@
   // Add smooth scroll behavior
   document.documentElement.style.scrollBehavior = 'smooth';
   
-  // Enhanced Loading Functions
+  // Enhanced Loading Functions - FIXED
   function showLoadingOverlay(message = 'Đang tải...') {
     // Remove existing overlay
     const existingOverlay = document.querySelector('.loading-overlay');
@@ -1071,7 +1068,7 @@
     }
   }
   
-  // Enhanced button loading with different spinner types
+  // Enhanced button loading with different spinner types - FIXED
   function addLoadingToButton(button, originalText, spinnerType = 'default') {
     if (!button) return;
     
@@ -1089,7 +1086,8 @@
         button.innerHTML = `<span class="loading-bounce">●</span> ${originalText}`;
         break;
       default:
-        button.classList.add('loading');
+        // FIXED: Use specific class instead of global .loading
+        button.classList.add('btn-loading');
         button.innerHTML = originalText;
     }
     
@@ -1100,7 +1098,7 @@
     if (!button) return;
     
     button.disabled = false;
-    button.classList.remove('loading');
+    button.classList.remove('btn-loading'); // FIXED: Remove specific class
     
     const originalText = customText || button.getAttribute('data-original-text') || button.innerHTML;
     button.innerHTML = originalText;
@@ -1175,14 +1173,7 @@
       btn.classList.add('ripple');
     });
     
-    // Enhance existing loading indicators
-    const existingSpinners = document.querySelectorAll('.loading');
-    existingSpinners.forEach(spinner => {
-      if (!spinner.classList.contains('loading-spinner')) {
-        spinner.innerHTML = '●';
-        spinner.classList.add('loading-bounce');
-      }
-    });
+    // REMOVED: Don't enhance existing loading indicators to prevent conflicts
   });
   
   // Global loading state management
