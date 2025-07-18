@@ -50,6 +50,13 @@ function doGet(e) {
     let template;
     try {
       template = HtmlService.createTemplateFromFile(templateName);
+      
+      // Pass URL parameters to template (especially token for employee-portal)
+      if (page === 'employee-portal' && e.parameter.token) {
+        template.urlToken = e.parameter.token;
+        logWithContext('WebApp_Main', `Token parameter found and passed to template: ${e.parameter.token}`);
+      }
+      
       logWithContext('WebApp_Main', `Template created successfully: ${templateName}`);
     } catch (templateError) {
       logWithContext('WebApp_Main', `Template creation failed for ${templateName}: ${templateError.message}`, 'ERROR');

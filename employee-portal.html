@@ -1064,12 +1064,56 @@
             return match ? match[1] : workingCode;
         }
         
+        // Parse URL parameters for auto-login
+        function parseTokenFromURL() {
+            const fullURL = window.location.href;
+            const urlParams = new URLSearchParams(window.location.search);
+            const tokenParam = urlParams.get('token');
+            
+            // Check if token was passed from server-side template
+            const serverToken = '<?= typeof urlToken !== "undefined" ? urlToken : "" ?>';
+            
+            // Debug logging for URL and token
+            console.log('🔗 Current URL:', fullURL);
+            console.log('🔑 Token from URL params:', tokenParam);
+            console.log('🎯 Token from server template:', serverToken);
+            console.log('📋 All URL params:', Object.fromEntries(urlParams.entries()));
+            
+            // Use server token if available, otherwise URL token
+            const finalToken = serverToken || tokenParam;
+            
+            if (finalToken && finalToken.trim()) {
+                console.log('✅ Valid token found:', finalToken.length > 10 ? finalToken.substring(0,10) + '...' : finalToken);
+                document.getElementById('tokenInput').value = finalToken.trim();
+                setTimeout(() => {
+                    console.log('🚀 Starting auto-validation...');
+                    validateToken();
+                }, 500);
+                return true;
+            } else {
+                console.log('❌ No valid token found in URL or server template');
+            }
+            return false;
+        }
+        
         // Initialize
         window.onload = function() {
             console.log('🚀 Employee Portal initializing...');
             
-            // Show token form
-            showTokenForm();
+            // Check for token in URL first
+            const hasURLToken = parseTokenFromURL();
+            
+            if (!hasURLToken) {
+                // Show token form only if no URL token
+                showTokenForm();
+            } else {
+                // Show token form but don't focus (auto-login in progress)
+                document.getElementById('tokenForm').style.display = 'block';
+                document.getElementById('authError').style.display = 'none';
+                document.getElementById('portalHeader').style.display = 'none';
+                document.getElementById('controlsPanel').style.display = 'none';
+                document.getElementById('tasksContainer').innerHTML = '<div class="empty-state"><h3>🔗 Đang tự động đăng nhập...</h3><p>Vui lòng chờ trong giây lát</p></div>';
+            }
             
             // Add Enter key support
             document.getElementById('tokenInput').addEventListener('keypress', function(e) {
