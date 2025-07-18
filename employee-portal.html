@@ -1,9 +1,1403 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <base target="_top">
-  </head>
-  <body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏢 Portal nhân viên</title>
     
-  </body>
+    <!-- Include shared styles for entire project -->
+    <?!= include('shared-styles'); ?>
+    
+    <!-- Page-specific styles -->
+    <style>
+        /* ===================================================================
+           EMPLOYEE PORTAL - PAGE SPECIFIC STYLES
+           ================================================================== */
+        
+        /* Container override for mobile-friendly design */
+        .container {
+            max-width: 100% !important;
+            margin: var(--space-4) auto !important;
+            padding: 0 var(--space-4) !important;
+        }
+        
+        /* Header styling */
+        .portal-header {
+            background: linear-gradient(135deg, var(--shopify-navy), #4a90e2);
+            color: white;
+            padding: var(--space-6);
+            border-radius: var(--border-radius-lg);
+            margin-bottom: var(--space-6);
+            box-shadow: var(--shadow-md);
+            text-align: center;
+        }
+        
+        .portal-title {
+            font-size: 1.8em;
+            font-weight: 700;
+            margin-bottom: var(--space-2);
+        }
+        
+        .portal-subtitle {
+            font-size: 1em;
+            opacity: 0.9;
+            margin-bottom: var(--space-3);
+        }
+        
+        .employee-info {
+            background: rgba(255,255,255,0.1);
+            padding: var(--space-3);
+            border-radius: var(--border-radius-base);
+            display: inline-block;
+        }
+        
+        .employee-name {
+            font-size: 1.2em;
+            font-weight: 600;
+            margin-bottom: var(--space-1);
+        }
+        
+        .employee-role {
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+        
+        /* Controls Panel */
+        .controls-panel {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subdued);
+            border-radius: var(--border-radius-lg);
+            padding: var(--space-5);
+            margin-bottom: var(--space-6);
+            box-shadow: var(--shadow-base);
+        }
+        
+        .controls-row {
+            display: flex;
+            gap: var(--space-4);
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: var(--space-4);
+        }
+        
+        .controls-row:last-child {
+            margin-bottom: 0;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-1);
+        }
+        
+        .control-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+        
+        .form-input, .form-select {
+            padding: var(--space-2) var(--space-3);
+            border: 1px solid var(--border-subdued);
+            border-radius: var(--border-radius-base);
+            background: var(--bg-surface);
+            color: var(--text-primary);
+            min-width: 150px;
+            font-size: 14px;
+        }
+        
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: var(--shopify-blue);
+            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+        }
+        
+        .btn-portal {
+            background: var(--shopify-blue);
+            color: white;
+            border: none;
+            padding: var(--space-2) var(--space-4);
+            border-radius: var(--border-radius-base);
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.15s ease;
+            font-size: 14px;
+        }
+        
+        .btn-portal:hover {
+            background: #3a7bc8;
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .btn-success {
+            background: var(--shopify-green);
+        }
+        
+        .btn-success:hover {
+            background: #22c55e;
+        }
+        
+        .btn-warning {
+            background: var(--shopify-orange);
+        }
+        
+        .btn-warning:hover {
+            background: #f59e0b;
+        }
+        
+        /* Filter Radio Groups */
+        .filter-group {
+            display: flex;
+            gap: var(--space-4);
+            margin-top: var(--space-2);
+        }
+        
+        .filter-option {
+            display: flex;
+            align-items: center;
+            gap: var(--space-1);
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .filter-option input[type="radio"] {
+            margin: 0;
+        }
+        
+        /* Task Cards */
+        .tasks-container {
+            display: grid;
+            gap: var(--space-5);
+        }
+        
+        .task-card {
+            background: var(--bg-surface);
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-base);
+            overflow: hidden;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            border: 1px solid var(--border-subdued);
+        }
+        
+        .task-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .task-card.overdue {
+            border-left: 5px solid var(--shopify-red);
+        }
+        
+        .task-card.completed {
+            opacity: 0.8;
+            border-left: 5px solid var(--shopify-green);
+        }
+        
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: var(--space-4);
+            border-bottom: 1px solid var(--border-subdued);
+        }
+        
+        .task-left {
+            display: flex;
+            align-items: center;
+            gap: var(--space-3);
+        }
+        
+        .task-checkbox {
+            transform: scale(1.2);
+            cursor: pointer;
+        }
+        
+        .task-title-container {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-1);
+        }
+        
+        .task-title {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: var(--text-primary);
+            line-height: 1.3;
+        }
+        
+        .task-subtitle {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            flex-wrap: wrap;
+        }
+        
+        .task-badge {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: 600;
+        }
+        
+        .working-code-badge {
+            background: var(--shopify-blue);
+            color: white;
+            font-family: monospace;
+        }
+        
+        .task-shop-badge {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+        
+        .task-sku-badge {
+            background: #e8f5e8;
+            color: #2e7d32;
+            font-family: monospace;
+        }
+        
+        .task-sku-empty {
+            background: #ffebee;
+            color: #c62828;
+        }
+        
+        .task-deadline {
+            padding: 3px 8px;
+            border-radius: 8px;
+            font-size: 0.75em;
+            font-weight: 600;
+        }
+        
+        .task-deadline.normal {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+        
+        .task-deadline.urgent {
+            background: #ffebee;
+            color: #c62828;
+            animation: urgentBlink 1s infinite;
+        }
+        
+        @keyframes urgentBlink {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+        
+        .task-right {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+        
+        .task-done {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .done-completed {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .done-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        /* Task Body */
+        .task-body {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: var(--space-4);
+            padding: var(--space-4);
+        }
+        
+        .task-info {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-2);
+        }
+        
+        .working-code {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: var(--shopify-blue);
+            font-family: monospace;
+            background: #f8f9fa;
+            padding: var(--space-2);
+            border-radius: var(--border-radius-base);
+            border-left: 4px solid var(--shopify-blue);
+        }
+        
+        .info-row {
+            display: flex;
+            gap: var(--space-2);
+            align-items: center;
+            font-size: 0.9em;
+        }
+        
+        .info-label {
+            font-weight: 600;
+            color: var(--text-secondary);
+            min-width: 80px;
+        }
+        
+        .info-value {
+            color: var(--text-primary);
+        }
+        
+        .description {
+            background: #f8f9fa;
+            padding: var(--space-3);
+            border-radius: var(--border-radius-base);
+            line-height: 1.5;
+            color: var(--text-secondary);
+        }
+        
+        /* Images */
+        .images-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: var(--space-4);
+            margin-top: var(--space-4);
+        }
+        
+        .image-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--space-2);
+        }
+        
+        .image-label {
+            font-size: 0.9em;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+        
+        .product-image, .result-image {
+            width: 100%;
+            max-width: 250px;
+            height: 250px;
+            object-fit: cover;
+            border-radius: var(--border-radius-base);
+            border: 2px solid var(--border-subdued);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .product-image:hover, .result-image:hover {
+            transform: scale(1.02);
+        }
+        
+        .image-placeholder {
+            width: 100%;
+            max-width: 250px;
+            height: 250px;
+            background: #f8f9fa;
+            border: 2px dashed var(--border-subdued);
+            border-radius: var(--border-radius-base);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-2);
+            color: var(--text-secondary);
+            text-align: center;
+        }
+        
+        .btn-upload {
+            background: var(--shopify-blue);
+            color: white;
+            border: none;
+            padding: var(--space-2) var(--space-3);
+            border-radius: var(--border-radius-base);
+            cursor: pointer;
+            font-size: 0.85em;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .btn-upload:hover {
+            background: #3a7bc8;
+            transform: translateY(-1px);
+        }
+        
+        .btn-upload-small {
+            font-size: 0.75em;
+            padding: var(--space-1) var(--space-2);
+        }
+        
+        /* Stats Summary */
+        .stats-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: var(--space-4);
+            margin-bottom: var(--space-6);
+        }
+        
+        .stat-item {
+            background: var(--bg-surface);
+            padding: var(--space-4);
+            border-radius: var(--border-radius-lg);
+            text-align: center;
+            box-shadow: var(--shadow-base);
+            border: 1px solid var(--border-subdued);
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: 700;
+            color: var(--shopify-green);
+            margin-bottom: var(--space-1);
+        }
+        
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.8em;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        /* Messages */
+        .message {
+            padding: var(--space-3) var(--space-4);
+            border-radius: var(--border-radius-base);
+            margin: var(--space-2) 0;
+            font-weight: 500;
+        }
+        
+        .message.loading {
+            background: #e3f2fd;
+            color: #1976d2;
+            border-left: 4px solid #2196f3;
+        }
+        
+        .message.success {
+            background: #e8f5e8;
+            color: #2e7d32;
+            border-left: 4px solid #4caf50;
+        }
+        
+        .message.error {
+            background: #ffebee;
+            color: #c62828;
+            border-left: 4px solid #f44336;
+        }
+        
+        .message.warning {
+            background: #fff8e1;
+            color: #f57c00;
+            border-left: 4px solid #ff9800;
+        }
+        
+        .message.info {
+            background: #f3e5f5;
+            color: #7b1fa2;
+            border-left: 4px solid #9c27b0;
+        }
+        
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: var(--space-12) var(--space-6);
+            color: var(--text-secondary);
+            background: var(--bg-surface);
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-base);
+        }
+        
+        .empty-state h3 {
+            margin-bottom: var(--space-2);
+            color: var(--text-primary);
+        }
+        
+        .empty-state p {
+            margin: var(--space-1) 0;
+        }
+        
+        /* Authentication Forms */
+        .auth-form {
+            background: var(--bg-surface);
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-lg);
+            padding: var(--space-8);
+            margin: var(--space-8) auto;
+            max-width: 500px;
+            border: 1px solid var(--border-subdued);
+        }
+        
+        .form-header {
+            text-align: center;
+            margin-bottom: var(--space-6);
+        }
+        
+        .form-header h2 {
+            color: var(--text-primary);
+            margin-bottom: var(--space-2);
+            font-size: 1.5em;
+        }
+        
+        .form-header p {
+            color: var(--text-secondary);
+            margin: 0;
+        }
+        
+        .form-body {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-4);
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-2);
+        }
+        
+        .form-label {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+        
+        .btn-primary {
+            background: var(--shopify-blue);
+            font-size: 16px;
+            padding: var(--space-3) var(--space-4);
+        }
+        
+        .btn-primary:hover {
+            background: #3a7bc8;
+        }
+
+        /* Authentication Error */
+        .auth-error {
+            background: #ffebee;
+            color: #c62828;
+            padding: var(--space-6);
+            border-radius: var(--border-radius-lg);
+            text-align: center;
+            border: 1px solid #f44336;
+            margin: var(--space-4) auto;
+            max-width: 500px;
+        }
+        
+        .auth-error h3 {
+            margin-bottom: var(--space-2);
+            color: #c62828;
+        }
+        
+        .auth-error .btn-retry {
+            background: #d32f2f;
+            color: white;
+            border: none;
+            padding: var(--space-2) var(--space-4);
+            border-radius: var(--border-radius-base);
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: var(--space-3);
+        }
+        
+        .auth-error .btn-retry:hover {
+            background: #b71c1c;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                margin: var(--space-2) auto !important;
+                padding: 0 var(--space-2) !important;
+            }
+            
+            .portal-header {
+                padding: var(--space-4);
+            }
+            
+            .portal-title {
+                font-size: 1.5em;
+            }
+            
+            .controls-row {
+                flex-direction: column;
+                gap: var(--space-3);
+                align-items: stretch;
+            }
+            
+            .form-input, .form-select {
+                min-width: auto;
+                width: 100%;
+            }
+            
+            .task-header {
+                flex-direction: column;
+                gap: var(--space-3);
+                align-items: flex-start;
+            }
+            
+            .task-right {
+                width: 100%;
+                justify-content: flex-start;
+            }
+            
+            .images-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-summary {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .portal-header {
+                padding: var(--space-3);
+            }
+            
+            .controls-panel {
+                padding: var(--space-3);
+            }
+            
+            .task-card {
+                margin: 0 -var(--space-1);
+            }
+            
+            .task-body {
+                padding: var(--space-3);
+            }
+            
+            .stats-summary {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <a href="?" class="navbar-brand">🏢 Hệ thống quản lý</a>
+        <div class="navbar-nav">
+            <a href="?" class="nav-link">🏠 Trang chủ</a>
+            <a href="?page=employee-portal" class="nav-link active">👤 Portal nhân viên</a>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Token Input Form (shown by default) -->
+        <div id="tokenForm" class="auth-form">
+            <div class="form-header">
+                <h2>🔐 Nhập mã truy cập</h2>
+                <p>Vui lòng nhập token để truy cập portal nhân viên</p>
+            </div>
+            <div class="form-body">
+                <div class="form-group">
+                    <label for="tokenInput" class="form-label">Token:</label>
+                    <input type="text" id="tokenInput" class="form-input" placeholder="Nhập token của bạn..." autocomplete="off">
+                </div>
+                <button onclick="validateManualToken()" class="btn-portal btn-primary">🔑 Xác thực</button>
+            </div>
+        </div>
+
+        <!-- Authentication Error (hidden by default) -->
+        <div id="authError" class="auth-error" style="display: none;">
+            <h3>❌ Lỗi xác thực</h3>
+            <p>Token không hợp lệ hoặc đã hết hạn. Vui lòng liên hệ quản trị viên để lấy token mới.</p>
+        </div>
+
+        <!-- Portal Header (hidden by default) -->
+        <div id="portalHeader" class="portal-header" style="display: none;">
+            <div class="portal-title">👤 Portal nhân viên</div>
+            <div class="portal-subtitle">Quản lý công việc và upload kết quả</div>
+            <div class="employee-info">
+                <div class="employee-name" id="employeeName">Loading...</div>
+                <div class="employee-role" id="employeeRole">Loading...</div>
+            </div>
+        </div>
+        
+        <!-- Controls Panel (hidden by default) -->
+        <div id="controlsPanel" class="controls-panel" style="display: none;">
+            <!-- Date Selection -->
+            <div class="controls-row">
+                <div class="control-group">
+                    <label class="control-label">📅 Từ ngày:</label>
+                    <input type="date" id="startDate" class="form-input">
+                </div>
+                
+                <div class="control-group">
+                    <label class="control-label">📅 Đến ngày:</label>
+                    <input type="date" id="endDate" class="form-input">
+                </div>
+            </div>
+            
+            <!-- Filters -->
+            <div class="controls-row">
+                <div class="control-group">
+                    <label class="control-label">✅ Tình trạng hoàn thành:</label>
+                    <div class="filter-group">
+                        <label class="filter-option">
+                            <input type="radio" name="completionFilter" value="pending" checked>
+                            <span>Chưa xong</span>
+                        </label>
+                        <label class="filter-option">
+                            <input type="radio" name="completionFilter" value="completed">
+                            <span>Đã xong</span>
+                        </label>
+                        <label class="filter-option">
+                            <input type="radio" name="completionFilter" value="all">
+                            <span>Tất cả</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="controls-row">
+                <button onclick="loadTasks()" class="btn-portal">🔍 Tải công việc</button>
+                <button onclick="markCompleted()" class="btn-portal btn-success">✅ Đánh dấu hoàn thành</button>
+                <button onclick="markIncomplete()" class="btn-portal btn-warning">❌ Bỏ hoàn thành</button>
+            </div>
+        </div>
+        
+        <!-- Status Message -->
+        <div id="statusMessage"></div>
+        
+        <!-- Stats Summary (hidden by default) -->
+        <div class="stats-summary" id="statsSummary" style="display: none;">
+            <div class="stat-item">
+                <div class="stat-number" id="totalTasks">0</div>
+                <div class="stat-label">Tổng task</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="pendingTasks">0</div>
+                <div class="stat-label">Chưa xong</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="completedTasks">0</div>
+                <div class="stat-label">Đã xong</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="overdueTasks">0</div>
+                <div class="stat-label">Quá hạn</div>
+            </div>
+        </div>
+        
+        <!-- Tasks Container -->
+        <div class="tasks-container" id="tasksContainer">
+            <div class="empty-state">
+                <h3>🔗 Đang kiểm tra xác thực...</h3>
+                <p>Vui lòng chờ trong giây lát</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page JavaScript -->
+    <script>
+        let currentEmployee = null;
+        let currentTasks = [];
+        let employeeToken = null;
+        
+        // Utility function to escape HTML
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // ===================================================================
+        // AUTHENTICATION AND INITIALIZATION
+        // ===================================================================
+        
+        function getTokenFromUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('token');
+        }
+        
+        function showAuthError() {
+            document.getElementById('tokenForm').style.display = 'none';
+            document.getElementById('authError').style.display = 'block';
+            document.getElementById('portalHeader').style.display = 'none';
+            document.getElementById('controlsPanel').style.display = 'none';
+            document.getElementById('statsSummary').style.display = 'none';
+            document.getElementById('tasksContainer').innerHTML = '';
+            
+            // Add retry button to auth error
+            const authErrorDiv = document.getElementById('authError');
+            if (!authErrorDiv.querySelector('.btn-retry')) {
+                authErrorDiv.innerHTML += '<button onclick="showTokenForm()" class="btn-retry">🔄 Thử lại</button>';
+            }
+        }
+        
+        function showPortalInterface() {
+            document.getElementById('tokenForm').style.display = 'none';
+            document.getElementById('authError').style.display = 'none';
+            document.getElementById('portalHeader').style.display = 'block';
+            document.getElementById('controlsPanel').style.display = 'block';
+        }
+        
+        function validateToken() {
+            employeeToken = getTokenFromUrl();
+            
+            if (!employeeToken) {
+                // Show token input form instead of error
+                showTokenForm();
+                return;
+            }
+            
+            // If there's token in URL, validate it directly (skip form)
+            hideTokenForm();
+            showStatus('🔗 Đang xác thực token từ URL...', 'loading');
+            
+            google.script.run
+                .withSuccessHandler(handleTokenValidation)
+                .withFailureHandler(handleTokenError)
+                .validateEmployeeToken(employeeToken);
+        }
+        
+        function validateManualToken() {
+            const tokenInput = document.getElementById('tokenInput');
+            const manualToken = tokenInput.value.trim();
+            
+            if (!manualToken) {
+                showStatus('❌ Vui lòng nhập token!', 'error');
+                return;
+            }
+            
+            employeeToken = manualToken;
+            hideTokenForm();
+            showStatus('🔗 Đang xác thực token...', 'loading');
+            
+            google.script.run
+                .withSuccessHandler(handleTokenValidation)
+                .withFailureHandler(handleTokenError)
+                .validateEmployeeToken(employeeToken);
+        }
+        
+        function showTokenForm() {
+            document.getElementById('tokenForm').style.display = 'block';
+            document.getElementById('authError').style.display = 'none';
+            document.getElementById('portalHeader').style.display = 'none';
+            document.getElementById('controlsPanel').style.display = 'none';
+            document.getElementById('statsSummary').style.display = 'none';
+            document.getElementById('tasksContainer').innerHTML = '';
+            
+            // Auto-fill token from URL if available
+            const urlToken = getTokenFromUrl();
+            if (urlToken) {
+                document.getElementById('tokenInput').value = urlToken;
+                showStatus('🔗 Token từ URL đã được điền sẵn. Bấm Xác thực để tiếp tục.', 'info');
+            }
+            
+            // Focus on token input
+            setTimeout(() => {
+                document.getElementById('tokenInput').focus();
+            }, 100);
+        }
+        
+        function hideTokenForm() {
+            document.getElementById('tokenForm').style.display = 'none';
+        }
+        
+        function handleTokenValidation(result) {
+            if (result.success) {
+                currentEmployee = result.data;
+                
+                // Update UI with employee info
+                document.getElementById('employeeName').textContent = currentEmployee.name;
+                document.getElementById('employeeRole').textContent = currentEmployee.role || 'Nhân viên';
+                
+                // Show portal interface
+                showPortalInterface();
+                
+                // Set default dates
+                const today = new Date();
+                const todayStr = today.toISOString().split('T')[0];
+                document.getElementById('startDate').value = todayStr;
+                document.getElementById('endDate').value = todayStr;
+                
+                showStatus('✅ Xin chào ' + currentEmployee.name + '!', 'success');
+                
+                // Auto-load tasks
+                setTimeout(loadTasks, 1000);
+            } else {
+                showAuthError();
+                showStatus('❌ ' + result.error, 'error');
+            }
+        }
+        
+        function handleTokenError(error) {
+            // If token came from URL but failed, show form with token pre-filled
+            const urlToken = getTokenFromUrl();
+            if (urlToken) {
+                showTokenForm();
+                showStatus('❌ Token từ URL không hợp lệ. Vui lòng kiểm tra lại.', 'error');
+            } else {
+                showAuthError();
+                showStatus('❌ Lỗi xác thực: ' + error.message, 'error');
+            }
+        }
+        
+        // ===================================================================
+        // UTILITY FUNCTIONS
+        // ===================================================================
+        
+        function showStatus(message, type = 'loading') {
+            const statusDiv = document.getElementById('statusMessage');
+            if (statusDiv) {
+                statusDiv.innerHTML = '<div class="message ' + type + '">' + message + '</div>';
+            }
+            console.log('[' + type.toUpperCase() + '] ' + message);
+            
+            // Auto-hide non-loading messages
+            if (type !== 'loading') {
+                setTimeout(() => {
+                    if (statusDiv) statusDiv.innerHTML = '';
+                }, 5000);
+            }
+        }
+        
+        function formatDateForDisplay(date) {
+            return date.toLocaleDateString('vi-VN');
+        }
+        
+        
+        function getFilters() {
+            const completionFilter = document.querySelector('input[name="completionFilter"]:checked').value;
+            
+            return {
+                completionStatus: completionFilter
+            };
+        }
+        
+        // ===================================================================
+        // TASK MANAGEMENT
+        // ===================================================================
+        
+        function loadTasks() {
+            if (!employeeToken) {
+                showStatus('❌ Token không hợp lệ!', 'error');
+                return;
+            }
+            
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            if (!startDate || !endDate) {
+                showStatus('❌ Vui lòng chọn khoảng thời gian!', 'error');
+                return;
+            }
+            
+            const filters = getFilters();
+            
+            showStatus('🔄 Đang tải công việc...', 'loading');
+            
+            google.script.run
+                .withSuccessHandler(handleTasksLoaded)
+                .withFailureHandler(handleTasksError)
+                .getEmployeeTasksByToken(employeeToken, startDate, endDate, { filters: filters });
+        }
+        
+        function handleTasksLoaded(result) {
+            if (result.success) {
+                currentTasks = result.data;
+                renderTasks(currentTasks);
+                updateStats(currentTasks);
+                showStatus('✅ Đã tải ' + result.count + ' công việc!', 'success');
+            } else {
+                showStatus('❌ ' + result.error, 'error');
+            }
+        }
+        
+        function handleTasksError(error) {
+            showStatus('❌ Lỗi tải công việc: ' + error.message, 'error');
+        }
+        
+        // ===================================================================
+        // TASK RENDERING
+        // ===================================================================
+        
+        function renderTasks(tasks) {
+            const container = document.getElementById('tasksContainer');
+            
+            if (!tasks || tasks.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h3>📭 Không có công việc nào</h3>
+                        <p>Thử thay đổi bộ lọc hoặc khoảng thời gian</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            
+            tasks.forEach((task, index) => {
+                const cardClass = getTaskCardClass(task);
+                const productImageHtml = generateProductImageHtml(task);
+                const resultImageHtml = generateResultImageHtml(task);
+                
+                html += `
+                    <div class="${cardClass}">
+                        <div class="task-header">
+                            <div class="task-left">
+                                <input type="checkbox" class="task-checkbox" data-index="${index}">
+                                <div class="task-title-container">
+                                    <div class="task-title">Công việc</div>
+                                    <div class="task-subtitle">
+                                        <span class="task-badge working-code-badge">${escapeHtml(task.workingCode)}</span>
+                                        ${generateSkuBadge(task)}
+                                        <span class="task-badge task-deadline ${getDeadlineClass(task)}">⏰ ${escapeHtml(task.deadline)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="task-right">
+                                <span class="task-done ${task.isCompleted ? 'done-completed' : 'done-pending'}" 
+                                      onclick="toggleTaskCompletion(${index})">
+                                    ${task.isCompleted ? '✅ Đã xong' : '⏳ Chưa xong'}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div class="task-body">
+                            <div class="task-info">
+                                <div class="working-code">#${escapeHtml(getCleanWorkingCode(task.workingCode))}</div>
+                                
+                                <div class="info-row">
+                                    <span class="info-label">📅 Ngày:</span>
+                                    <span class="info-value">${escapeHtml(task.date)}</span>
+                                </div>
+                                
+                                <div class="description">
+                                    <strong>📝 Mô tả:</strong><br>
+                                    ${escapeHtml(task.description || 'Không có mô tả')}
+                                </div>
+                                
+                                ${task.sku ? '<div class="info-row"><span class="info-label">🏷️ SKU:</span><span class="info-value">' + escapeHtml(task.sku) + '</span></div>' : ''}
+                            </div>
+                            
+                            <div class="images-section">
+                                <div class="image-container">
+                                    <div class="image-label">📦 Hình sản phẩm</div>
+                                    ${productImageHtml}
+                                </div>
+                                
+                                <div class="image-container">
+                                    <div class="image-label">📸 Kết quả</div>
+                                    ${resultImageHtml}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        function getTaskCardClass(task) {
+            let cardClass = 'task-card';
+            if (task.isOverdue) cardClass += ' overdue';
+            if (task.isCompleted) cardClass += ' completed';
+            return cardClass;
+        }
+        
+        function generateProductImageHtml(task) {
+            const productImageUrl = task.productImageUrl || task.productImage;
+            const productSku = task.productSku || task.extractedSKU;
+            
+            if (productImageUrl) {
+                const directImageUrl = convertGoogleDriveUrl(productImageUrl);
+                return `
+                    <img src="${directImageUrl}" alt="Sản phẩm" class="product-image" 
+                         onclick="openImageModal(this.src)" onerror="handleImageError(this)" 
+                         data-original-url="${productImageUrl}">
+                    ${productSku ? '<div class="task-badge task-sku-badge">SKU: ' + productSku + '</div>' : ''}
+                `;
+            } else {
+                return `
+                    <div class="image-placeholder">
+                        <div>📦 Không có hình sản phẩm</div>
+                        ${productSku ? '<div class="task-badge task-sku-badge">SKU: ' + productSku + '</div>' : ''}
+                    </div>
+                `;
+            }
+        }
+        
+        function generateResultImageHtml(task) {
+            if (task.resultImageUrl) {
+                const directImageUrl = convertGoogleDriveUrl(task.resultImageUrl);
+                return `
+                    <img src="${directImageUrl}" alt="Kết quả" class="result-image" 
+                         onclick="openImageModal(this.src)" onerror="handleImageError(this)" 
+                         data-original-url="${task.resultImageUrl}">
+                    <button onclick="uploadResultImage('${task.workingCode}', '${task.refId || task.workingCode}')" 
+                            class="btn-upload btn-upload-small">🔄 Thay đổi</button>
+                `;
+            } else {
+                return `
+                    <div class="image-placeholder">
+                        <div>📸 Chưa có kết quả</div>
+                        <button onclick="uploadResultImage('${task.workingCode}', '${task.refId || task.workingCode}')" 
+                                class="btn-upload">📤 Upload kết quả</button>
+                    </div>
+                `;
+            }
+        }
+        
+        function generateSkuBadge(task) {
+            if (task.originalSKU) {
+                return '<span class="task-badge task-sku-badge">SKU: ' + escapeHtml(task.originalSKU) + '</span>';
+            } else {
+                return '<span class="task-badge task-sku-badge task-sku-empty">SKU: ' + escapeHtml(task.extractedSKU || 'trống') + '</span>';
+            }
+        }
+        
+        function getDeadlineClass(task) {
+            return task.isOverdue ? 'urgent' : 'normal';
+        }
+        
+        function getCleanWorkingCode(workingCode) {
+            if (!workingCode) return '';
+            
+            // Extract pattern: EE2-V5339-65 → V5339-65
+            const match = workingCode.match(/^[A-Z]+\d*-(.+)$/);
+            return match ? match[1] : workingCode;
+        }
+        
+        function convertGoogleDriveUrl(url) {
+            if (!url) return url;
+            
+            if (url.includes('drive.google.com')) {
+                let fileId = null;
+                
+                let match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+                if (match) {
+                    fileId = match[1];
+                }
+                
+                if (!fileId) {
+                    match = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+                    if (match) {
+                        fileId = match[1];
+                    }
+                }
+                
+                if (fileId) {
+                    return 'https://drive.google.com/uc?export=view&id=' + fileId;
+                }
+            }
+            
+            return url;
+        }
+        
+        // ===================================================================
+        // STATISTICS
+        // ===================================================================
+        
+        function updateStats(tasks) {
+            if (!tasks) return;
+            
+            const totalTasks = tasks.length;
+            const completedTasks = tasks.filter(t => t.isCompleted).length;
+            const pendingTasks = tasks.filter(t => !t.isCompleted).length;
+            const overdueTasks = tasks.filter(t => t.isOverdue).length;
+            
+            document.getElementById('totalTasks').textContent = totalTasks;
+            document.getElementById('completedTasks').textContent = completedTasks;
+            document.getElementById('pendingTasks').textContent = pendingTasks;
+            document.getElementById('overdueTasks').textContent = overdueTasks;
+            
+            // Show stats if there are tasks
+            document.getElementById('statsSummary').style.display = totalTasks > 0 ? 'grid' : 'none';
+        }
+        
+        // ===================================================================
+        // TASK ACTIONS
+        // ===================================================================
+        
+        function markCompleted() {
+            const selectedTasks = getSelectedTasks();
+            if (selectedTasks.length === 0) {
+                showStatus('❌ Vui lòng chọn ít nhất một công việc!', 'error');
+                return;
+            }
+            
+            showStatus('🔄 Đang đánh dấu hoàn thành...', 'loading');
+            
+            google.script.run
+                .withSuccessHandler(handleTaskUpdate)
+                .withFailureHandler(handleTaskUpdateError)
+                .updateTaskCompletionByToken(employeeToken, selectedTasks, true);
+        }
+        
+        function markIncomplete() {
+            const selectedTasks = getSelectedTasks();
+            if (selectedTasks.length === 0) {
+                showStatus('❌ Vui lòng chọn ít nhất một công việc!', 'error');
+                return;
+            }
+            
+            showStatus('🔄 Đang bỏ đánh dấu hoàn thành...', 'loading');
+            
+            google.script.run
+                .withSuccessHandler(handleTaskUpdate)
+                .withFailureHandler(handleTaskUpdateError)
+                .updateTaskCompletionByToken(employeeToken, selectedTasks, false);
+        }
+        
+        function toggleTaskCompletion(index) {
+            const task = currentTasks[index];
+            if (!task) return;
+            
+            const newStatus = !task.isCompleted;
+            showStatus('🔄 Đang cập nhật trạng thái...', 'loading');
+            
+            google.script.run
+                .withSuccessHandler(handleTaskUpdate)
+                .withFailureHandler(handleTaskUpdateError)
+                .updateTaskCompletionByToken(employeeToken, [task], newStatus);
+        }
+        
+        function handleTaskUpdate(result) {
+            if (result.success) {
+                showStatus('✅ ' + result.message, 'success');
+                loadTasks(); // Refresh tasks
+            } else {
+                showStatus('❌ ' + result.error, 'error');
+            }
+        }
+        
+        function handleTaskUpdateError(error) {
+            showStatus('❌ Lỗi cập nhật: ' + error.message, 'error');
+        }
+        
+        function getSelectedTasks() {
+            const checkboxes = document.querySelectorAll('.task-checkbox:checked');
+            return Array.from(checkboxes).map(cb => {
+                const index = parseInt(cb.dataset.index);
+                return currentTasks[index];
+            });
+        }
+        
+        // ===================================================================
+        // IMAGE UPLOAD
+        // ===================================================================
+        
+        function uploadResultImage(workingCode, refId) {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    // Validate file size (max 10MB)
+                    if (file.size > 10 * 1024 * 1024) {
+                        showStatus('❌ File quá lớn! Tối đa 10MB', 'error');
+                        return;
+                    }
+                    
+                    showStatus('🔄 Đang upload ' + file.name + '...', 'loading');
+                    
+                    // Convert file to base64
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        const base64Data = event.target.result.split(',')[1];
+                        
+                        google.script.run
+                            .withSuccessHandler(handleImageUpload)
+                            .withFailureHandler(handleImageUploadError)
+                            .uploadResultImageByToken(employeeToken, refId, base64Data, file.type, file.name, workingCode);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+            
+            input.click();
+        }
+        
+        function handleImageUpload(result) {
+            if (result.success) {
+                showStatus('✅ Upload thành công: ' + result.data.filename, 'success');
+                loadTasks(); // Refresh to show new image
+            } else {
+                showStatus('❌ Lỗi upload: ' + result.error, 'error');
+            }
+        }
+        
+        function handleImageUploadError(error) {
+            showStatus('❌ Lỗi upload: ' + error.message, 'error');
+        }
+        
+        // ===================================================================
+        // UTILITY FUNCTIONS
+        // ===================================================================
+        
+        function openImageModal(imageUrl) {
+            window.open(imageUrl, '_blank');
+        }
+        
+        function handleImageError(imgElement) {
+            const originalUrl = imgElement.getAttribute('data-original-url');
+            console.log('Image failed to load:', imgElement.src);
+            
+            if (originalUrl && imgElement.src !== originalUrl) {
+                console.log('Trying original URL as fallback...');
+                imgElement.src = originalUrl;
+            } else {
+                imgElement.style.display = 'none';
+                const fallbackUrl = originalUrl || imgElement.src;
+                imgElement.parentElement.innerHTML = `
+                    <div class="image-placeholder">
+                        <div>🖼️ Không thể tải hình</div>
+                        <div style="font-size: 0.8em; color: #999; margin-top: 5px;">
+                            <a href="` + fallbackUrl + `" target="_blank" style="color: #007bff;">Xem link gốc</a>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        // ===================================================================
+        // INITIALIZATION
+        // ===================================================================
+        
+        window.onload = function() {
+            console.log('🚀 Employee Portal initializing...');
+            
+            // Check token and validate
+            validateToken();
+            
+            // Add Enter key support for token input
+            document.getElementById('tokenInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    validateManualToken();
+                }
+            });
+        };
+        
+        // Make functions globally available
+        window.loadTasks = loadTasks;
+        window.markCompleted = markCompleted;
+        window.markIncomplete = markIncomplete;
+        window.toggleTaskCompletion = toggleTaskCompletion;
+        window.uploadResultImage = uploadResultImage;
+        window.openImageModal = openImageModal;
+        window.handleImageError = handleImageError;
+        window.validateManualToken = validateManualToken;
+        window.showTokenForm = showTokenForm;
+        
+        console.log('✅ Employee Portal loaded successfully');
+    </script>
+</body>
 </html>

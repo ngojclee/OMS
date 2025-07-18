@@ -1254,6 +1254,625 @@ function getEmployeeTasksVersion() {
 }
 
 // ===================================================================
+// TOKEN-BASED AUTHENTICATION FOR EMPLOYEE PORTAL
+// ===================================================================
+
+/**
+ * Validate employee token and return employee information
+ * @param {string} token - Employee token from URL
+ * @returns {Object} - Employee information or error
+ */
+function validateEmployeeToken(token) {
+  logWithContext('EmployeeAuth', `Validating token: ${token}`);
+  
+  try {
+    if (isEmpty(token)) {
+      return createErrorResponse('Token không được để trống');
+    }
+    
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('setting') || ss.getSheetByName('Setting') || ss.getSheetByName('Settings');
+    
+    if (!sheet) {
+      return createErrorResponse('Settings sheet không tồn tại');
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    if (data.length < 2) {
+      return createErrorResponse('Settings sheet không có dữ liệu');
+    }
+    
+    // Search for token in column N (index 13)
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const employeeToken = safeString(row[13]); // Column N = Employee Token
+      const employeeName = safeString(row[5]);  // Column F = Employee Name
+      const sheetName = safeString(row[6]);     // Column G = Sheet Name
+      const status = safeString(row[7] || 'Active'); // Column H = Status
+      const role = safeString(row[8] || '');    // Column I = Role
+      
+      if (employeeToken === token && !isEmpty(employeeName)) {
+        // Check if employee is active
+        if (status.toLowerCase() !== 'active') {
+          return createErrorResponse('Tài khoản nhân viên không hoạt động');
+        }
+        
+        const employee = {
+          name: employeeName,
+          sheetName: sheetName,
+          status: status,
+          role: role,
+          token: employeeToken,
+          isValidated: true
+        };
+        
+        logWithContext('EmployeeAuth', `Token validated successfully for: ${employeeName}`);
+        return {
+          success: true,
+          data: employee,
+          message: `✅ Xác thực thành công cho nhân viên: ${employeeName}`
+        };
+      }
+    }
+    
+    return createErrorResponse('Token không hợp lệ hoặc đã hết hạn');
+    
+  } catch (error) {
+    logWithContext('EmployeeAuth', `Error validating token: ${error.message}`, 'ERROR');
+    return createErrorResponse('Lỗi xác thực token: ' + error.message);
+  }
+}
+
+/**
+ * Get employee tasks using token authentication
+ * @param {string} token - Employee token
+ * @param {string} startDate - Start date (YYYY-MM-DD)
+ * @param {string} endDate - End date (YYYY-MM-DD)
+ * @param {Object} options - Additional options
+ * @returns {Object} - Employee tasks or error
+ */
+function getEmployeeTasksByToken(token, startDate, endDate, options = {}) {
+  logWithContext('EmployeePortal', `Getting tasks by token for date range: ${startDate} to ${endDate}`);
+  
+  try {
+    // Validate token first
+    const authResult = validateEmployeeToken(token);
+    if (!authResult.success) {
+      return authResult;
+    }
+    
+    const employee = authResult.data;
+    
+    // Get tasks for this specific employee only
+    const tasksResult = getEmployeeTasksWithProducts(employee.name, startDate, endDate, options);
+    
+    if (!tasksResult.success) {
+      return tasksResult;
+    }
+    
+    // Add employee info to response
+    const result = {
+      ...tasksResult,
+      employee: {
+        name: employee.name,
+        role: employee.role,
+        status: employee.status
+      },
+      message: `✅ Đã tải ${tasksResult.count} tasks cho ${employee.name}`
+    };
+    
+    logWithContext('EmployeePortal', `Tasks loaded for ${employee.name}: ${tasksResult.count} tasks`);
+    return result;
+    
+  } catch (error) {
+    logWithContext('EmployeePortal', `Error getting tasks by token: ${error.message}`, 'ERROR');
+    return createErrorResponse('Lỗi khi tải tasks: ' + error.message);
+  }
+}
+
+/**
+ * Update task completion status using token authentication
+ * @param {string} token - Employee token
+ * @param {Array} tasks - Tasks to update
+ * @param {boolean} isCompleted - Completion status
+ * @returns {Object} - Update result
+ */
+function updateTaskCompletionByToken(token, tasks, isCompleted) {
+  logWithContext('EmployeePortal', `Updating task completion by token: ${tasks.length} tasks`);
+  
+  try {
+    // Validate token first
+    const authResult = validateEmployeeToken(token);
+    if (!authResult.success) {
+      return authResult;
+    }
+    
+    const employee = authResult.data;
+    
+    // Verify all tasks belong to this employee
+    const invalidTasks = tasks.filter(task => task.employeeName !== employee.name);
+    if (invalidTasks.length > 0) {
+      return createErrorResponse('Có task không thuộc về nhân viên này');
+    }
+    
+    // Update tasks using existing function
+    const result = updateTasksCompletion(tasks, isCompleted);
+    
+    if (result.success) {
+      logWithContext('EmployeePortal', `${employee.name} updated ${tasks.length} tasks completion status`);
+    }
+    
+    return result;
+    
+  } catch (error) {
+    logWithContext('EmployeePortal', `Error updating task completion: ${error.message}`, 'ERROR');
+    return createErrorResponse('Lỗi khi cập nhật trạng thái task: ' + error.message);
+  }
+}
+
+/**
+ * Upload result image using token authentication
+ * @param {string} token - Employee token
+ * @param {string} refId - Reference ID
+ * @param {string} base64Data - Base64 encoded image data
+ * @param {string} mimeType - File MIME type
+ * @param {string} originalName - Original filename
+ * @param {string} workingCode - Working code to match
+ * @returns {Object} - Upload result
+ */
+function uploadResultImageByToken(token, refId, base64Data, mimeType, originalName, workingCode) {
+  logWithContext('EmployeePortal', `Uploading result image by token for working code: ${workingCode}`);
+  
+  try {
+    // Validate token first
+    const authResult = validateEmployeeToken(token);
+    if (!authResult.success) {
+      return authResult;
+    }
+    
+    const employee = authResult.data;
+    
+    // Use existing upload function
+    const result = uploadTaskResultImageFromBase64(employee.name, refId, base64Data, mimeType, originalName, workingCode);
+    
+    if (result.success) {
+      logWithContext('EmployeePortal', `${employee.name} uploaded result image for ${workingCode}`);
+    }
+    
+    return result;
+    
+  } catch (error) {
+    logWithContext('EmployeePortal', `Error uploading result image: ${error.message}`, 'ERROR');
+    return createErrorResponse('Lỗi khi upload hình ảnh: ' + error.message);
+  }
+}
+
+/**
+ * Generate employee access token (for admin use)
+ * @param {string} employeeName - Employee name
+ * @returns {string} - Generated token
+ */
+function generateEmployeeToken(employeeName) {
+  logWithContext('EmployeeAuth', `Generating single token for: ${employeeName}`);
+  
+  try {
+    if (isEmpty(employeeName)) {
+      return createErrorResponse('Employee name không được để trống');
+    }
+    
+    // Create token based on employee name + timestamp
+    const timestamp = new Date().getTime();
+    const tokenBase = employeeName.toLowerCase().replace(/\s+/g, '') + timestamp;
+    
+    // Simple hash (in production, use stronger hashing)
+    const token = Utilities.base64Encode(tokenBase).replace(/[^a-zA-Z0-9]/g, '').substring(0, 16);
+    
+    // Save token to Settings sheet
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('setting') || ss.getSheetByName('Setting') || ss.getSheetByName('Settings');
+    
+    if (!sheet) {
+      logWithContext('EmployeeAuth', 'Settings sheet not found', 'ERROR');
+      return token; // Return token anyway for manual save
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    if (data.length < 2) {
+      logWithContext('EmployeeAuth', 'Settings sheet empty', 'ERROR');
+      return token; // Return token anyway for manual save
+    }
+    
+    // Find employee and save token
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const currentName = safeString(row[5]); // Column F = Employee Name
+      
+      if (currentName === employeeName) {
+        // Save token to Column N (index 13)
+        sheet.getRange(i + 1, 14).setValue(token);
+        logWithContext('EmployeeAuth', `Token saved for ${employeeName}: ${token}`);
+        break;
+      }
+    }
+    
+    return token;
+    
+  } catch (error) {
+    logWithContext('EmployeeAuth', `Error generating single token: ${error.message}`, 'ERROR');
+    
+    // Fallback: still generate token even if save fails
+    const timestamp = new Date().getTime();
+    const tokenBase = employeeName.toLowerCase().replace(/\s+/g, '') + timestamp;
+    return Utilities.base64Encode(tokenBase).replace(/[^a-zA-Z0-9]/g, '').substring(0, 16);
+  }
+}
+
+/**
+ * Admin function to generate and save employee tokens
+ * @returns {Object} - Generated tokens for all employees
+ */
+function generateEmployeeTokens() {
+  logWithContext('EmployeeAuth', 'Generating employee tokens');
+  
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('setting') || ss.getSheetByName('Setting') || ss.getSheetByName('Settings');
+    
+    if (!sheet) {
+      return createErrorResponse('Settings sheet không tồn tại');
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    if (data.length < 2) {
+      return createErrorResponse('Settings sheet không có dữ liệu');
+    }
+    
+    const generatedTokens = [];
+    
+    // Generate tokens for employees (starting from row 2)
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const employeeName = safeString(row[5]); // Column F = Employee Name
+      const sheetName = safeString(row[6]);    // Column G = Sheet Name
+      
+      if (!isEmpty(employeeName) && !isEmpty(sheetName)) {
+        const token = generateEmployeeToken(employeeName);
+        
+        // Save token to Column N (index 13)
+        sheet.getRange(i + 1, 14).setValue(token);
+        
+        generatedTokens.push({
+          name: employeeName,
+          token: token,
+          url: `?page=employee-portal&token=${token}`,
+          qrData: `${ScriptApp.getService().getUrl()}?page=employee-portal&token=${token}`
+        });
+        
+        logWithContext('EmployeeAuth', `Generated token for ${employeeName}: ${token}`);
+      }
+    }
+    
+    return {
+      success: true,
+      data: generatedTokens,
+      count: generatedTokens.length,
+      message: `✅ Đã tạo ${generatedTokens.length} tokens cho nhân viên`
+    };
+    
+  } catch (error) {
+    logWithContext('EmployeeAuth', `Error generating tokens: ${error.message}`, 'ERROR');
+    return createErrorResponse('Lỗi khi tạo tokens: ' + error.message);
+  }
+}
+
+/**
+ * Context-aware function to generate token for current sheet's employee
+ * Detects current sheet name and generates token for that employee only
+ * @returns {Object} - Generated token for current sheet's employee
+ */
+function generateTokenForCurrentEmployee() {
+  logWithContext('EmployeeAuth', 'Generating token for current sheet employee');
+  
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const currentSheet = ss.getActiveSheet();
+    const currentSheetName = currentSheet.getName();
+    
+    logWithContext('EmployeeAuth', `Current sheet: ${currentSheetName}`);
+    
+    // Check if current sheet is a task sheet (Task_*)
+    if (!currentSheetName.startsWith('Task_')) {
+      return createErrorResponse(`Sheet hiện tại "${currentSheetName}" không phải là sheet nhân viên. Vui lòng chuyển sang sheet Task_<TenNhanVien>`);
+    }
+    
+    // Extract employee name from sheet name: Task_My Nguyen → My Nguyen
+    const employeeName = currentSheetName.replace('Task_', '');
+    
+    // Find employee in Settings sheet
+    const settingsSheet = ss.getSheetByName('setting') || ss.getSheetByName('Setting') || ss.getSheetByName('Settings');
+    
+    if (!settingsSheet) {
+      return createErrorResponse('Settings sheet không tồn tại');
+    }
+    
+    const data = settingsSheet.getDataRange().getValues();
+    if (data.length < 2) {
+      return createErrorResponse('Settings sheet không có dữ liệu');
+    }
+    
+    // Find matching employee in Settings
+    let employeeFound = false;
+    let employeeRow = -1;
+    
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const settingsEmployeeName = safeString(row[5]); // Column F = Employee Name
+      const settingsSheetName = safeString(row[6]);    // Column G = Sheet Name
+      
+      if (settingsEmployeeName === employeeName || settingsSheetName === currentSheetName) {
+        employeeFound = true;
+        employeeRow = i;
+        break;
+      }
+    }
+    
+    if (!employeeFound) {
+      return createErrorResponse(`Không tìm thấy nhân viên "${employeeName}" trong Settings sheet. Vui lòng kiểm tra Column F và G.`);
+    }
+    
+    // Generate token for this employee
+    const token = generateEmployeeToken(employeeName);
+    
+    // Save token to Settings sheet
+    settingsSheet.getRange(employeeRow + 1, 14).setValue(token); // Column N
+    
+    const result = {
+      success: true,
+      data: {
+        name: employeeName,
+        sheetName: currentSheetName,
+        token: token,
+        url: `?page=employee-portal&token=${token}`,
+        qrData: `${ScriptApp.getService().getUrl()}?page=employee-portal&token=${token}`
+      },
+      message: `✅ Đã tạo token cho nhân viên: ${employeeName}`
+    };
+    
+    logWithContext('EmployeeAuth', `Generated token for current employee ${employeeName}: ${token}`);
+    
+    // Display result in a user-friendly way
+    const fullUrl = `${ScriptApp.getService().getUrl()}${result.data.url}`;
+    
+    const displayMessage = `🔑 TOKEN CHO NHÂN VIÊN HIỆN TẠI:\n\n` +
+                          `Nhân viên: ${employeeName}\n` +
+                          `Sheet: ${currentSheetName}\n` +
+                          `Token: ${token}\n` +
+                          `URL: ${fullUrl}\n\n` +
+                          `📋 HƯỚNG DẪN:\n` +
+                          `• Copy URL và gửi cho nhân viên\n` +
+                          `• Tạo QR code từ URL\n` +
+                          `• Token đã được lưu vào Settings sheet (Column N)\n` +
+                          `• Nhân viên có thể bookmark link để sử dụng lâu dài\n\n` +
+                          `💡 TIP: URL đã được copy vào console log để dễ dàng copy-paste`;
+    
+    // Show popup with token info
+    const ui = SpreadsheetApp.getUi();
+    ui.alert('Token đã tạo thành công!', displayMessage, ui.ButtonSet.OK);
+    
+    // Log URL for easy copy-paste
+    console.log('=== EMPLOYEE PORTAL LINK ===');
+    console.log(`${employeeName}: ${fullUrl}`);
+    console.log('========================');
+    
+    return result;
+    
+  } catch (error) {
+    logWithContext('EmployeeAuth', `Error generating token for current employee: ${error.message}`, 'ERROR');
+    return createErrorResponse('Lỗi khi tạo token cho nhân viên hiện tại: ' + error.message);
+  }
+}
+
+/**
+ * Test function to validate a specific token
+ * @param {string} token - Token to test
+ * @returns {Object} - Validation result
+ */
+function testTokenValidation(token) {
+  if (!token) {
+    return createErrorResponse('Token không được cung cấp');
+  }
+  
+  console.log(`=== TESTING TOKEN: ${token} ===`);
+  
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('setting') || ss.getSheetByName('Setting') || ss.getSheetByName('Settings');
+    
+    if (!sheet) {
+      console.log('❌ Settings sheet không tồn tại');
+      return createErrorResponse('Settings sheet không tồn tại');
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    console.log(`📊 Settings sheet có ${data.length} rows`);
+    
+    if (data.length < 2) {
+      console.log('❌ Settings sheet không có dữ liệu');
+      return createErrorResponse('Settings sheet không có dữ liệu');
+    }
+    
+    // Debug: Show all columns for debugging
+    console.log('🔍 Tất cả data trong Settings:');
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const employeeName = safeString(row[5]);   // Column F
+      const status = safeString(row[7] || 'Active'); // Column H
+      
+      console.log(`  Row ${i + 1}: ${employeeName} | Status: "${status}"`);
+      console.log(`    Full row data: [${row.map((cell, idx) => `${String.fromCharCode(65 + idx)}:"${cell}"`).join(', ')}]`);
+      
+      // Check all columns for token match
+      let tokenFound = false;
+      let tokenColumn = -1;
+      
+      for (let j = 0; j < row.length; j++) {
+        const cellValue = safeString(row[j]);
+        if (cellValue === token) {
+          tokenFound = true;
+          tokenColumn = j;
+          console.log(`🎯 FOUND TOKEN at row ${i + 1}, column ${String.fromCharCode(65 + j)} (index ${j})!`);
+          break;
+        }
+      }
+      
+      if (tokenFound) {
+        console.log(`✅ Token found for employee: ${employeeName}`);
+        
+        if (isEmpty(employeeName)) {
+          console.log('❌ Employee name is empty');
+          return createErrorResponse('Employee name trống');
+        }
+        
+        if (status.toLowerCase() !== 'active') {
+          console.log(`❌ Employee status is "${status}", not "active"`);
+          return createErrorResponse('Tài khoản nhân viên không hoạt động');
+        }
+        
+        const employee = {
+          name: employeeName,
+          sheetName: safeString(row[6]),
+          status: status,
+          role: safeString(row[8] || ''),
+          token: employeeToken,
+          isValidated: true
+        };
+        
+        console.log(`✅ Token validation successful for: ${employeeName}`);
+        console.log(`📋 Employee info: ${JSON.stringify(employee, null, 2)}`);
+        
+        return {
+          success: true,
+          data: employee,
+          message: `✅ Xác thực thành công cho nhân viên: ${employeeName}`
+        };
+      }
+    }
+    
+    console.log('❌ No matching token found');
+    return createErrorResponse('Token không hợp lệ hoặc đã hết hạn');
+    
+  } catch (error) {
+    console.error('❌ Error during token validation:', error);
+    return createErrorResponse('Lỗi xác thực token: ' + error.message);
+  }
+}
+
+/**
+ * Debug function to check Settings sheet structure
+ * @returns {Object} - Settings sheet info
+ */
+function debugSettingsSheet() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName('setting') || ss.getSheetByName('Setting') || ss.getSheetByName('Settings');
+    
+    if (!sheet) {
+      console.log('❌ Settings sheet không tồn tại');
+      return { success: false, error: 'Settings sheet không tồn tại' };
+    }
+    
+    console.log('=== SETTINGS SHEET DEBUG ===');
+    console.log(`Sheet name: ${sheet.getName()}`);
+    console.log(`Total rows: ${sheet.getLastRow()}`);
+    console.log(`Total columns: ${sheet.getLastColumn()}`);
+    
+    const data = sheet.getDataRange().getValues();
+    
+    // Show header row
+    if (data.length > 0) {
+      console.log('📋 Header row:');
+      data[0].forEach((header, idx) => {
+        console.log(`  ${String.fromCharCode(65 + idx)} (index ${idx}): "${header}"`);
+      });
+    }
+    
+    // Show all data rows
+    console.log('📊 Data rows:');
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      console.log(`\nRow ${i + 1}:`);
+      
+      row.forEach((cell, idx) => {
+        const cellValue = String(cell || '').trim();
+        if (cellValue) {
+          console.log(`  ${String.fromCharCode(65 + idx)} (index ${idx}): "${cellValue}"`);
+        }
+      });
+    }
+    
+    return { success: true, rows: data.length, columns: sheet.getLastColumn() };
+    
+  } catch (error) {
+    console.error('❌ Error debugging Settings sheet:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Quick function to get current employee portal link
+ * @returns {string} - Portal link for current sheet's employee
+ */
+function getCurrentEmployeePortalLink() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const currentSheet = ss.getActiveSheet();
+    const currentSheetName = currentSheet.getName();
+    
+    if (!currentSheetName.startsWith('Task_')) {
+      return `❌ Sheet hiện tại "${currentSheetName}" không phải là sheet nhân viên`;
+    }
+    
+    const employeeName = currentSheetName.replace('Task_', '');
+    
+    // Get existing token from Settings
+    const settingsSheet = ss.getSheetByName('setting') || ss.getSheetByName('Setting') || ss.getSheetByName('Settings');
+    
+    if (!settingsSheet) {
+      return '❌ Settings sheet không tồn tại';
+    }
+    
+    const data = settingsSheet.getDataRange().getValues();
+    let existingToken = null;
+    
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const settingsEmployeeName = safeString(row[5]); // Column F
+      const token = safeString(row[13]); // Column N
+      
+      if (settingsEmployeeName === employeeName && token) {
+        existingToken = token;
+        break;
+      }
+    }
+    
+    if (!existingToken) {
+      return `❌ Chưa có token cho nhân viên "${employeeName}". Vui lòng tạo token trước.`;
+    }
+    
+    const portalLink = `${ScriptApp.getService().getUrl()}?page=employee-portal&token=${existingToken}`;
+    
+    console.log('=== EMPLOYEE PORTAL LINK ===');
+    console.log(`${employeeName}: ${portalLink}`);
+    console.log('========================');
+    
+    return portalLink;
+    
+  } catch (error) {
+    return `❌ Lỗi: ${error.message}`;
+  }
+}
+
+// ===================================================================
 // ENHANCED FEATURES - 2025-07-12 UPDATE
 // ===================================================================
 

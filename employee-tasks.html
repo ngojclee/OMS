@@ -722,6 +722,11 @@
                     <button onclick="confirmDelivery()" class="btn-panel btn-success">📤 Xác nhận giao đơn</button>
                     <button onclick="markCompleted()" class="btn-panel btn-success">✅ Đánh dấu hoàn thành</button>
                     <button onclick="markIncomplete()" class="btn-panel btn-danger">❌ Bỏ hoàn thành</button>
+                    <button onclick="generateTokens()" class="btn-panel" style="background: rgba(255,193,7,0.9);">🔑 Tạo Token</button>
+                </div>
+                
+                <!-- Debug/Test Buttons -->
+                <div class="controls-row">
                     <button onclick="runDebug()" class="btn-panel" style="background: rgba(255,165,0,0.9);">🔧 Debug System</button>
                     <button onclick="testConnectivity()" class="btn-panel" style="background: rgba(0,123,255,0.9);">🔗 Test Connectivity</button>
                     <button onclick="window.testSystemComponents ? testSystemComponents() : alert('Function not loaded yet!')" class="btn-panel" style="background: rgba(156,39,176,0.9);">🧪 Test Components</button>
@@ -1509,6 +1514,93 @@
                 .testBasicConnectivity();
         }
         
+        function generateTokens() {
+            const employeeName = document.getElementById('employeeSelector').value;
+            
+            if (!employeeName) {
+                showStatus('❌ Vui lòng chọn nhân viên!', 'error');
+                return;
+            }
+            
+            showStatus('🔑 Đang tạo token cho ' + (employeeName === 'All' ? 'tất cả nhân viên' : employeeName) + '...', 'loading');
+            
+            if (employeeName === 'All') {
+                // Generate tokens for all employees
+                google.script.run
+                    .withSuccessHandler(handleTokenGenerationSuccess)
+                    .withFailureHandler(handleTokenGenerationError)
+                    .generateEmployeeTokens();
+            } else {
+                // Generate token for specific employee
+                google.script.run
+                    .withSuccessHandler(handleSingleTokenSuccess)
+                    .withFailureHandler(handleTokenGenerationError)
+                    .generateEmployeeToken(employeeName);
+            }
+        }
+        
+        function handleTokenGenerationSuccess(result) {
+            console.log('Token generation result:', result);
+            
+            if (result.success) {
+                showStatus('✅ ' + result.message, 'success');
+                
+                // Create detailed display
+                let displayMessage = `🔑 TOKENS ĐÃ TẠO THÀNH CÔNG:\n\n`;
+                
+                result.data.forEach((emp, index) => {
+                    displayMessage += `${index + 1}. ${emp.name}\n`;
+                    displayMessage += `   Token: ${emp.token}\n`;
+                    displayMessage += `   URL: ${window.location.origin}${window.location.pathname}${emp.url}\n`;
+                    displayMessage += `   QR Data: ${emp.qrData}\n\n`;
+                });
+                
+                displayMessage += `\n📋 HƯỚNG DẪN:\n`;
+                displayMessage += `• Copy URL và gửi cho nhân viên\n`;
+                displayMessage += `• Tạo QR code từ QR Data\n`;
+                displayMessage += `• Token đã được lưu vào Settings sheet (Column N)\n`;
+                displayMessage += `• Nhân viên có thể bookmark link để sử dụng lâu dài`;
+                
+                // Show in alert (for now, can be improved with modal)
+                alert(displayMessage);
+                
+                // Also log to console for copy-paste
+                console.log('=== GENERATED TOKENS ===');
+                result.data.forEach(emp => {
+                    console.log(`${emp.name}: ${window.location.origin}${window.location.pathname}${emp.url}`);
+                });
+            } else {
+                showStatus('❌ Lỗi tạo token: ' + result.error, 'error');
+                alert('❌ Lỗi tạo token: ' + result.error);
+            }
+        }
+        
+        function handleSingleTokenSuccess(token) {
+            console.log('Single token generated:', token);
+            
+            const employeeName = document.getElementById('employeeSelector').value;
+            const tokenUrl = `${window.location.origin}${window.location.pathname}?page=employee-portal&token=${token}`;
+            
+            showStatus('✅ Token đã tạo cho ' + employeeName, 'success');
+            
+            const displayMessage = `🔑 TOKEN ĐÃ TẠO CHO ${employeeName}:\n\n` +
+                                 `Token: ${token}\n` +
+                                 `URL: ${tokenUrl}\n\n` +
+                                 `📋 HƯỚNG DẪN:\n` +
+                                 `• Copy URL và gửi cho nhân viên\n` +
+                                 `• Tạo QR code từ URL\n` +
+                                 `• Nhân viên có thể bookmark link để sử dụng lâu dài`;
+            
+            alert(displayMessage);
+            console.log(`Token cho ${employeeName}: ${tokenUrl}`);
+        }
+        
+        function handleTokenGenerationError(error) {
+            console.error('Token generation failed:', error);
+            showStatus('❌ Lỗi tạo token: ' + error.message, 'error');
+            alert('❌ Lỗi tạo token: ' + error.message);
+        }
+        
         
         
         // ===================================================================
@@ -1539,6 +1631,7 @@
         window.markIncomplete = markIncomplete;
         window.uploadResultImage = uploadResultImage;
         window.runDebug = runDebug;
+        window.generateTokens = generateTokens;
         
         console.log('✅ Employee Tasks page loaded - corrected architecture');
     </script>

@@ -31,6 +31,7 @@ function doGet(e) {
       'label-script',
       'shipping-labels',
       'employee-tasks',
+      'employee-portal',
       'inventory',
       'reports', 
       'settings'
@@ -139,6 +140,7 @@ function getWebAppInfo() {
         { id: 'extract-orders', name: 'Trích xuất đơn hàng', status: 'stable', icon: '📦' },
         { id: 'label-script', name: 'In tem vận chuyển', status: 'stable', icon: '🏷️' },
         { id: 'employee-tasks', name: 'Giao việc nhân viên', status: 'stable', icon: '👥' },
+        { id: 'employee-portal', name: 'Portal nhân viên', status: 'stable', icon: '👤' },
         { id: 'products-integration', name: 'Sản phẩm Mr Ngoc', status: 'stable', icon: '🛍️' },
         { id: 'shipping-labels', name: 'Tem vận chuyển (Legacy)', status: 'deprecated', icon: '🗑️' },
         { id: 'inventory', name: 'Quản lý kho', status: 'planned', icon: '📊' },
